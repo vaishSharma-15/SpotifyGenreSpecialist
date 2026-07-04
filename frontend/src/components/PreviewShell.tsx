@@ -56,31 +56,29 @@ export default function PreviewShell() {
   const [scale, setScale] = useState(1)
   const stageRef = useRef<HTMLDivElement>(null)
 
+  // Outer phone box including bezel padding (12px each side).
+  const BOX = { w: SCREEN.w + 24, h: SCREEN.h + 24 }
+
   useEffect(() => {
     if (device !== 'mobile') return
     const compute = () => {
-      const availH = window.innerHeight - 130
+      const availH = window.innerHeight - 120
       const availW = window.innerWidth - 48
-      setScale(Math.min(1, availH / (SCREEN.h + 24), availW / (SCREEN.w + 24)))
+      setScale(Math.min(1, availH / BOX.h, availW / BOX.w))
     }
     compute()
     window.addEventListener('resize', compute)
     return () => window.removeEventListener('resize', compute)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [device])
 
   const src = `${import.meta.env.BASE_URL}?embed=1`
 
   return (
     <div className="h-full flex flex-col bg-[#0b0b0b] text-white">
-      {/* Toolbar */}
-      <header className="flex items-center gap-4 px-5 h-14 border-b border-white/10 shrink-0">
-        <div className="flex items-center gap-2 font-bold">
-          <span className="w-3 h-3 rounded-full bg-spotify-green shadow-[0_0_12px_rgba(30,215,96,.7)]" />
-          Discovery DJ
-          <span className="text-spotify-subtle font-normal text-sm ml-1">· Mentor preview</span>
-        </div>
-
-        <div className="mx-auto flex items-center gap-1 p-1 rounded-full bg-spotify-highlight">
+      {/* Toolbar: toggle only */}
+      <header className="flex items-center justify-center h-14 border-b border-white/10 shrink-0">
+        <div className="flex items-center gap-1 p-1 rounded-full bg-spotify-highlight">
           {(['desktop', 'mobile'] as Device[]).map((d) => (
             <button
               key={d}
@@ -93,22 +91,17 @@ export default function PreviewShell() {
             </button>
           ))}
         </div>
-
-        <a
-          href={import.meta.env.BASE_URL}
-          className="text-sm font-semibold text-spotify-subtle hover:text-white transition"
-        >
-          Exit ✕
-        </a>
       </header>
 
       {device === 'desktop' ? (
         <iframe title="Desktop preview" src={src} className="flex-1 w-full border-0" />
       ) : (
-        <div ref={stageRef} className="flex-1 grid place-items-center overflow-auto p-6">
-          {/* iPhone */}
-          <div style={{ transform: `scale(${scale})` }}>
-            <div className="relative bg-black rounded-[54px] p-[12px] shadow-[0_40px_80px_-20px_rgba(0,0,0,.9)] ring-1 ring-white/10">
+        <div ref={stageRef} className="flex-1 grid place-items-center overflow-auto p-4">
+          {/* Sized wrapper so the scaled phone's layout box matches its visual size
+              and grid can truly center it. */}
+          <div style={{ width: BOX.w * scale, height: BOX.h * scale }}>
+            <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }}>
+              <div className="relative bg-black rounded-[54px] p-[12px] shadow-[0_40px_80px_-20px_rgba(0,0,0,.9)] ring-1 ring-white/10">
               {/* side buttons */}
               <div className="absolute -left-[3px] top-[130px] w-[3px] h-16 rounded-l bg-[#222]" />
               <div className="absolute -right-[3px] top-[160px] w-[3px] h-24 rounded-r bg-[#222]" />
@@ -126,6 +119,7 @@ export default function PreviewShell() {
                 />
                 {/* home indicator */}
                 <div className="absolute bottom-[7px] left-1/2 -translate-x-1/2 w-[130px] h-[5px] rounded-full bg-white/85 z-10" />
+              </div>
               </div>
             </div>
           </div>
