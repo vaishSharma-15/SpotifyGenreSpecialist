@@ -11,6 +11,7 @@ from typing import Dict, List, Optional
 
 from . import deezer_provider as dz
 from . import mood as mood_mod
+from .clean import clean_tracks
 from .models import Track
 from .mock_library import TRACK_LIBRARY
 
@@ -42,13 +43,16 @@ _MOCK_GENRES = [{"id": name, "name": name}
                 for name in ["Indie Folk", "Ambient", "Math Rock", "Bollywood"]]
 
 # id -> Track, populated lazily as genres are fetched (for /why-line lookups etc.)
-_seen: Dict[str, Track] = {t.id: t for t in TRACK_LIBRARY}
+# Mock tracks are mood-categorized up front so lookups always carry both axes.
+_seen: Dict[str, Track] = {t.id: t for t in mood_mod.annotate_moods(TRACK_LIBRARY)}
 
 
 def _remember(tracks: List[Track]) -> List[Track]:
-    for t in tracks:
+    """Clean + categorize a pool, then register it for later id lookups."""
+    cleaned = clean_tracks(tracks)
+    for t in cleaned:
         _seen[t.id] = t
-    return tracks
+    return cleaned
 
 
 def _merge_genres(base: List[Dict]) -> List[Dict]:
@@ -111,7 +115,7 @@ def tracks_for_genre_mood(genre: str, mood: str, limit: int = 100) -> List[Track
             pass  # fall through to mock
 
     pool = tracks_for_genre(genre, limit=max(limit * 3, 60))
-    return mood_mod.filter_by_mood(pool, mood, limit)
+    return _remember(mood_mod.filter_by_mood(pool, mood, limit))
 
 
 def get_track_by_id(track_id: str) -> Optional[Track]:

@@ -28,6 +28,7 @@ class Track:
     popularity_score: float  # 0-100
     sound_descriptors: Dict[str, float]  # energy 0-1, valence 0-1, tempo BPM
     release_year: int = 2020
+    mood: str = ""  # categorized mood (see data/mood.py classify_mood); "" until set
 
 
 @dataclass

@@ -72,6 +72,30 @@ def mood_score(track: Track, mood: str) -> float:
     return round(max(0.0, 1.0 - dist / (2 ** 0.5)), 4)
 
 
+def classify_mood(track: Track) -> str:
+    """Categorize a track into its single nearest mood by (energy, valence).
+
+    Always returns a mood name, so every song ends up labelled — this is the
+    'categorize on the basis of mood' step. Deterministic and offline.
+    """
+    sd = track.sound_descriptors
+    e, v = sd.get("energy", 0.5), sd.get("valence", 0.5)
+    best, best_dist = "", float("inf")
+    for name, prof in MOOD_PROFILES.items():
+        d = (e - prof["energy"]) ** 2 + (v - prof["valence"]) ** 2
+        if d < best_dist:
+            best, best_dist = name, d
+    return best
+
+
+def annotate_moods(tracks: List[Track]) -> List[Track]:
+    """Set track.mood for any track that doesn't already carry one (mutates in place)."""
+    for t in tracks:
+        if not t.mood:
+            t.mood = classify_mood(t)
+    return tracks
+
+
 def filter_by_mood(tracks: List[Track], mood: str, limit: int = 100,
                    min_score: float = 0.6) -> List[Track]:
     """Keep tracks matching the mood, closest first.

@@ -54,6 +54,7 @@ def _track_json(t):
         "id": t.id, "title": t.title, "artist": t.artist,
         "album_art_url": t.album_art_url, "genre_tags": t.genre_tags,
         "popularity_score": t.popularity_score, "sound_descriptors": t.sound_descriptors,
+        "mood": t.mood,
     }
 
 

@@ -58,6 +58,19 @@ export default function TrackCard({ track }: Props) {
       <h3 className="text-white font-bold truncate">{track.title}</h3>
       <p className="text-sm text-spotify-subtle truncate">{track.artist}</p>
 
+      <div className="mt-1 flex flex-wrap gap-1">
+        {track.genre_tags[0] && (
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-spotify-subtle">
+            {track.genre_tags[0]}
+          </span>
+        )}
+        {track.mood && (
+          <span className="text-[10px] px-2 py-0.5 rounded-full bg-spotify-green/15 text-spotify-green">
+            {track.mood}
+          </span>
+        )}
+      </div>
+
       <div className="mt-2 min-h-[2.5rem] text-xs text-spotify-green/90 leading-snug">
         {loadingWhy ? '…' : why ?? ''}
       </div>
