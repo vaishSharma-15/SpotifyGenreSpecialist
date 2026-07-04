@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import type { Track } from '../types'
 import { api } from '../api'
 import { useStore } from '../store'
@@ -8,21 +7,8 @@ interface Props {
 }
 
 export default function TrackCard({ track }: Props) {
-  const { personaId, setNowPlaying, addFeedback } = useStore()
-  const [why, setWhy] = useState<string | null>(null)
-  const [loadingWhy, setLoadingWhy] = useState(false)
-
-  const loadWhy = async () => {
-    if (why || loadingWhy) return
-    setLoadingWhy(true)
-    try {
-      setWhy(await api.whyLine(track.id, personaId))
-    } catch {
-      setWhy('A deep cut picked for your taste.')
-    } finally {
-      setLoadingWhy(false)
-    }
-  }
+  const { personaId, nowPlaying, isPlaying, playTrack, togglePlay, addFeedback } = useStore()
+  const isCurrent = nowPlaying?.id === track.id
 
   const act = (action: 'SAVE' | 'SKIP') => {
     addFeedback(track.id, action)
@@ -30,13 +16,12 @@ export default function TrackCard({ track }: Props) {
   }
 
   const play = () => {
-    setNowPlaying(track)
-    loadWhy()
+    if (isCurrent) togglePlay()
+    else playTrack(track)
   }
 
   return (
     <div
-      onMouseEnter={loadWhy}
       className="group relative bg-spotify-elevated hover:bg-spotify-highlight rounded-lg p-4 transition-colors duration-300 cursor-pointer"
     >
       <div className="relative mb-4">
@@ -48,14 +33,24 @@ export default function TrackCard({ track }: Props) {
         />
         <button
           onClick={play}
-          aria-label="Play"
-          className="absolute bottom-2 right-2 w-12 h-12 rounded-full bg-spotify-green text-black text-xl grid place-items-center opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 transition shadow-xl hover:scale-105"
+          aria-label={isCurrent && isPlaying ? 'Pause' : 'Play'}
+          className={`absolute bottom-2 right-2 w-12 h-12 rounded-full bg-spotify-green text-black grid place-items-center transition shadow-xl hover:scale-105 ${
+            isCurrent
+              ? 'opacity-100 translate-y-0'
+              : 'opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0'
+          }`}
         >
-          ▶
+          {isCurrent && isPlaying ? (
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+          ) : (
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          )}
         </button>
       </div>
 
-      <h3 className="text-white font-bold truncate">{track.title}</h3>
+      <h3 className={`font-bold truncate ${isCurrent ? 'text-spotify-green' : 'text-white'}`}>
+        {track.title}
+      </h3>
       <p className="text-sm text-spotify-subtle truncate">{track.artist}</p>
 
       <div className="mt-1 flex flex-wrap gap-1">
@@ -71,11 +66,7 @@ export default function TrackCard({ track }: Props) {
         )}
       </div>
 
-      <div className="mt-2 min-h-[2.5rem] text-xs text-spotify-green/90 leading-snug">
-        {loadingWhy ? '…' : why ?? ''}
-      </div>
-
-      <div className="mt-2 flex items-center gap-2">
+      <div className="mt-3 flex items-center gap-2">
         <button
           onClick={() => act('SAVE')}
           className="text-xs font-bold px-3 py-1.5 rounded-full bg-spotify-green text-black hover:bg-spotify-greenHover transition"

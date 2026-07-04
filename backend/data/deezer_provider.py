@@ -76,13 +76,15 @@ def _to_track(raw: dict, genre_name: str, rank_lo: int, rank_hi: int) -> Track:
         id=f"dz{raw.get('id')}",
         title=raw.get("title", "Unknown"),
         artist=artist.get("name", "Unknown"),
-        album_art_url=album.get("cover_medium") or album.get("cover") or "",
+        album_art_url=(album.get("cover_big") or album.get("cover_medium")
+                       or album.get("cover") or ""),
         genre_tags=[genre_name],
         popularity_score=popularity,
         sound_descriptors={"energy": round(energy, 3),
                            "valence": round(valence, 3),
                            "tempo": round(bpm, 1)},
         release_year=int((raw.get("album", {}).get("release_date") or "0000")[:4] or 0),
+        preview_url=raw.get("preview", "") or "",
     )
 
 

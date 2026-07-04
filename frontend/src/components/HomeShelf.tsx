@@ -5,7 +5,7 @@ import { useStore } from '../store'
 import TrackCard from './TrackCard'
 
 export default function HomeShelf() {
-  const { personaId, genre, mood, dial, served, addServed } = useStore()
+  const { personaId, genre, mood, dial, served, addServed, setQueue } = useStore()
   const [tracks, setTracks] = useState<Track[]>([])
   const [loading, setLoading] = useState(true)
   const [exhausted, setExhausted] = useState(false)
@@ -27,7 +27,11 @@ export default function HomeShelf() {
       )
       setExhausted(done)
       addServed(recs.map((t) => t.id))
-      setTracks((prev) => (append ? [...prev, ...recs] : recs))
+      setTracks((prev) => {
+        const merged = append ? [...prev, ...recs] : recs
+        setQueue(merged) // keep the player queue in sync for next/prev
+        return merged
+      })
     } catch (e) {
       setError((e as Error).message)
     } finally {

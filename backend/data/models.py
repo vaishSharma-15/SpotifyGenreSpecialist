@@ -29,6 +29,7 @@ class Track:
     sound_descriptors: Dict[str, float]  # energy 0-1, valence 0-1, tempo BPM
     release_year: int = 2020
     mood: str = ""  # categorized mood (see data/mood.py classify_mood); "" until set
+    preview_url: str = ""  # 30s audio preview (Deezer); "" when unavailable
 
 
 @dataclass

@@ -7,6 +7,7 @@ export interface Track {
   popularity_score: number
   sound_descriptors: Record<string, number>
   mood?: string
+  preview_url?: string
 }
 
 export interface Persona {

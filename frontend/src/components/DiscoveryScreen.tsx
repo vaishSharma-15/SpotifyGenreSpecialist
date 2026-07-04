@@ -4,25 +4,25 @@ import { api } from '../api'
 import { useStore } from '../store'
 
 export default function DiscoveryScreen() {
-  const { personaId, genre, mood, dial, served, addServed, addFeedback, setNowPlaying } = useStore()
+  const { personaId, genre, mood, dial, served, addServed, addFeedback, playTrack, setQueue,
+          currentWhy, whyLoading } = useStore()
   const [track, setTrack] = useState<Track | null>(null)
-  const [why, setWhy] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [showBaseline, setShowBaseline] = useState(false)
   const [baseline, setBaseline] = useState<Track | null>(null)
+  const why = whyLoading ? 'Thinking…' : currentWhy
 
   const next = async () => {
     if (!personaId || !genre) return
     setLoading(true)
-    setWhy('')
     try {
       const { tracks } = await api.recommend(personaId, genre, dial, 1, served, mood)
       const t = tracks[0] ?? null
       setTrack(t)
       if (t) {
         addServed([t.id])
-        setNowPlaying(t)
-        api.whyLine(t.id, personaId).then(setWhy).catch(() => setWhy('A deep cut for your taste.'))
+        setQueue([t])
+        playTrack(t) // plays audio + loads the why into the store
       }
     } finally {
       setLoading(false)
