@@ -1,13 +1,14 @@
-import type { Genre, Persona } from '../types'
+import type { Genre, Mood, Persona } from '../types'
 import { useStore } from '../store'
 
 interface Props {
   personas: Persona[]
   genres: Genre[]
+  moods: Mood[]
 }
 
-export default function Sidebar({ personas, genres }: Props) {
-  const { personaId, genre, dial, view, feedback, setPersona, setGenre, setDial, setView } =
+export default function Sidebar({ personas, genres, moods }: Props) {
+  const { personaId, genre, mood, dial, view, feedback, setPersona, setGenre, setMood, setDial, setView } =
     useStore()
 
   const dialLabel = dial < 0.34 ? 'Safe' : dial < 0.67 ? 'Balanced' : 'Adventurous'
@@ -66,6 +67,20 @@ export default function Sidebar({ personas, genres }: Props) {
           {genres.map((g) => (
             <option key={g.id} value={g.name}>
               {g.name}
+            </option>
+          ))}
+        </select>
+
+        <label className="block text-xs font-bold uppercase mb-1">🎭 Mood</label>
+        <select
+          value={mood}
+          onChange={(e) => setMood(e.target.value)}
+          className="w-full mb-5 bg-spotify-highlight text-white rounded px-3 py-2 text-sm outline-none"
+        >
+          <option value="">Any mood</option>
+          {moods.map((m) => (
+            <option key={m.id} value={m.name}>
+              {m.name}
             </option>
           ))}
         </select>

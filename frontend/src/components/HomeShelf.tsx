@@ -5,7 +5,7 @@ import { useStore } from '../store'
 import TrackCard from './TrackCard'
 
 export default function HomeShelf() {
-  const { personaId, genre, dial, served, addServed } = useStore()
+  const { personaId, genre, mood, dial, served, addServed } = useStore()
   const [tracks, setTracks] = useState<Track[]>([])
   const [loading, setLoading] = useState(true)
   const [exhausted, setExhausted] = useState(false)
@@ -23,6 +23,7 @@ export default function HomeShelf() {
         dial,
         8,
         excl,
+        mood,
       )
       setExhausted(done)
       addServed(recs.map((t) => t.id))
@@ -39,7 +40,7 @@ export default function HomeShelf() {
     setTracks([])
     load(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [personaId, genre, dial])
+  }, [personaId, genre, mood, dial])
 
   const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'
 
@@ -47,7 +48,8 @@ export default function HomeShelf() {
     <div>
       <h1 className="text-3xl font-extrabold text-white mb-1">{greeting}</h1>
       <p className="text-spotify-subtle mb-6">
-        Deep cuts in <span className="text-white font-semibold">{genre}</span> — picked for your taste.
+        Deep cuts in <span className="text-white font-semibold">{genre}</span>
+        {mood && <> · <span className="text-spotify-green font-semibold">{mood}</span> mood</>} — picked for your taste.
       </p>
 
       {error && <p className="text-red-400 mb-4">Couldn’t reach the backend: {error}</p>}

@@ -4,7 +4,7 @@ import { api } from '../api'
 import { useStore } from '../store'
 
 export default function DiscoveryScreen() {
-  const { personaId, genre, dial, served, addServed, addFeedback, setNowPlaying } = useStore()
+  const { personaId, genre, mood, dial, served, addServed, addFeedback, setNowPlaying } = useStore()
   const [track, setTrack] = useState<Track | null>(null)
   const [why, setWhy] = useState<string>('')
   const [loading, setLoading] = useState(true)
@@ -16,7 +16,7 @@ export default function DiscoveryScreen() {
     setLoading(true)
     setWhy('')
     try {
-      const { tracks } = await api.recommend(personaId, genre, dial, 1, served)
+      const { tracks } = await api.recommend(personaId, genre, dial, 1, served, mood)
       const t = tracks[0] ?? null
       setTrack(t)
       if (t) {
@@ -32,7 +32,7 @@ export default function DiscoveryScreen() {
   useEffect(() => {
     next()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [personaId, genre, dial])
+  }, [personaId, genre, mood, dial])
 
   useEffect(() => {
     if (showBaseline && personaId && genre) {

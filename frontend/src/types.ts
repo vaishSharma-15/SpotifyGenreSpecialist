@@ -20,6 +20,11 @@ export interface Genre {
   name: string
 }
 
+export interface Mood {
+  id: string
+  name: string
+}
+
 export type ActionType = 'SAVE' | 'SKIP' | 'REPLAY'
 
 export interface FeedbackEntry {

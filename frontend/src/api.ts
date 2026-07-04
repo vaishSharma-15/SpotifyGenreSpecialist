@@ -1,4 +1,4 @@
-import type { ActionType, Genre, Persona, Track } from './types'
+import type { ActionType, Genre, Mood, Persona, Track } from './types'
 
 const BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000').replace(/\/$/, '')
 
@@ -21,6 +21,8 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 export const api = {
   genres: () => get<{ genres: Genre[] }>('/genres').then((r) => r.genres),
 
+  moods: () => get<{ moods: Mood[] }>('/moods').then((r) => r.moods),
+
   personas: () => get<{ personas: Persona[] }>('/personas').then((r) => r.personas),
 
   recommend: (
@@ -29,12 +31,14 @@ export const api = {
     dial: number,
     limit = 8,
     exclude: string[] = [],
+    mood = '',
   ) =>
     get<{ tracks: Track[]; exhausted: boolean }>(
       `/recommend?persona_id=${encodeURIComponent(personaId)}` +
         `&locked_genre=${encodeURIComponent(genre)}` +
         `&dial_position=${dial}&limit=${limit}` +
-        `&exclude=${encodeURIComponent(exclude.join(','))}`,
+        `&exclude=${encodeURIComponent(exclude.join(','))}` +
+        (mood ? `&mood=${encodeURIComponent(mood)}` : ''),
     ),
 
   whyLine: (trackId: string, personaId: string) =>

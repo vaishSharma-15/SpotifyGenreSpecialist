@@ -4,6 +4,7 @@ import type { ActionType, FeedbackEntry, Track } from './types'
 interface AppState {
   personaId: string
   genre: string
+  mood: string
   dial: number
   view: 'home' | 'discovery'
   nowPlaying: Track | null
@@ -12,6 +13,7 @@ interface AppState {
 
   setPersona: (id: string) => void
   setGenre: (g: string) => void
+  setMood: (m: string) => void
   setDial: (d: number) => void
   setView: (v: 'home' | 'discovery') => void
   setNowPlaying: (t: Track | null) => void
@@ -23,6 +25,7 @@ interface AppState {
 export const useStore = create<AppState>((set) => ({
   personaId: '',
   genre: '',
+  mood: '',
   dial: 0.5,
   view: 'home',
   nowPlaying: null,
@@ -31,6 +34,7 @@ export const useStore = create<AppState>((set) => ({
 
   setPersona: (id) => set({ personaId: id, served: [], feedback: [] }),
   setGenre: (g) => set({ genre: g, served: [] }),
+  setMood: (m) => set({ mood: m, served: [] }),
   setDial: (d) => set({ dial: d }),
   setView: (v) => set({ view: v }),
   setNowPlaying: (t) => set({ nowPlaying: t }),

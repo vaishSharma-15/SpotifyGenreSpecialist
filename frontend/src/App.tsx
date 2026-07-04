@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Genre, Persona } from './types'
+import type { Genre, Mood, Persona } from './types'
 import { api } from './api'
 import { useStore } from './store'
 import Sidebar from './components/Sidebar'
@@ -11,13 +11,15 @@ export default function App() {
   const { view, personaId, setPersona, setGenre } = useStore()
   const [personas, setPersonas] = useState<Persona[]>([])
   const [genres, setGenres] = useState<Genre[]>([])
+  const [moods, setMoods] = useState<Mood[]>([])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    Promise.all([api.personas(), api.genres()])
-      .then(([ps, gs]) => {
+    Promise.all([api.personas(), api.genres(), api.moods()])
+      .then(([ps, gs, ms]) => {
         setPersonas(ps)
         setGenres(gs)
+        setMoods(ms)
         if (ps[0]) setPersona(ps[0].id)
         if (gs[0]) setGenre(gs[0].name)
       })
@@ -43,7 +45,7 @@ export default function App() {
   return (
     <div className="h-full flex flex-col bg-black p-2 gap-2">
       <div className="flex-1 flex gap-2 min-h-0">
-        <Sidebar personas={personas} genres={genres} />
+        <Sidebar personas={personas} genres={genres} moods={moods} />
         <main className="flex-1 overflow-y-auto rounded-lg bg-gradient-to-b from-spotify-highlight/40 to-spotify-base p-6">
           {view === 'home' ? <HomeShelf /> : <DiscoveryScreen />}
         </main>
