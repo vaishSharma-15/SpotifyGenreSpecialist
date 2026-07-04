@@ -20,8 +20,22 @@ _SOURCE = os.getenv("DATA_SOURCE", "deezer").lower()
 # genres — they resolve via keyword search (tracks_for_genre handles that), which
 # lets us offer Indian/regional catalogs the Deezer genre list doesn't expose.
 _FEATURED_GENRES = [{"id": name, "name": name} for name in [
-    "Bollywood", "Punjabi", "Tamil", "Telugu", "Indian Indie", "Indian Classical",
+    # Indian / regional
+    "Bollywood", "Punjabi", "Marathi", "Bengali", "Gujarati",
+    "Tamil", "Telugu", "Indian Indie", "Indian Classical",
+    # Western / international
+    "Hollywood", "Jazz", "Brazilian",
 ]]
+
+# Labels whose bare name matches unrelated song titles on Deezer. Map them to a
+# richer search query so results are real songs in that language/style.
+_SEARCH_ALIASES = {
+    "Marathi": "marathi hit songs",
+    "Bengali": "bengali hit songs",
+    "Gujarati": "gujarati garba songs",
+    "Hollywood": "hollywood movie soundtrack",
+    "Brazilian": "brazilian bossa nova samba",
+}
 
 # Genres exposed when running purely on mock data.
 _MOCK_GENRES = [{"id": name, "name": name}
@@ -56,7 +70,9 @@ def tracks_for_genre(genre: str, limit: int = 100) -> List[Track]:
     """All candidate tracks for a genre (real or mock)."""
     if _SOURCE != "mock":
         try:
-            real = dz.tracks_for_genre(genre, limit=limit)
+            alias = _SEARCH_ALIASES.get(genre)
+            real = (dz.tracks_for_query(alias, genre, limit=limit) if alias
+                    else dz.tracks_for_genre(genre, limit=limit))
             if real:
                 return _remember(real)
         except dz.DeezerUnavailable:

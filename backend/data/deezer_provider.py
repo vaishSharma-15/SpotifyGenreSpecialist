@@ -124,6 +124,16 @@ def _search_tracks(name: str, limit: int) -> List[dict]:
     return _get(f"/search?q={q}&limit={limit}").get("data", [])
 
 
+def tracks_for_query(query: str, label: str, limit: int = 100) -> List[Track]:
+    """Search Deezer for `query` but tag results with the friendly `label`.
+
+    Used for labels that aren't Deezer chart genres and whose bare name matches
+    unrelated song titles (e.g. "Marathi" -> a mariachi track). A richer query
+    like "marathi hit songs" biases toward real songs in that language.
+    """
+    return _tracks_from_raw(_search_tracks(query, limit), label)
+
+
 def tracks_for_genre(genre: str, limit: int = 100) -> List[Track]:
     """Real tracks for a genre (by name or numeric id). Raises DeezerUnavailable.
 
