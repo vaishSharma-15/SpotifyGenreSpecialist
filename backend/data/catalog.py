@@ -28,13 +28,21 @@ _FEATURED_GENRES = [{"id": name, "name": name} for name in [
     "Hollywood", "Jazz", "Brazilian",
 ]]
 
-# Labels whose bare name matches unrelated song titles on Deezer. Map them to a
-# richer search query so results are real songs in that language/style.
-_SEARCH_ALIASES = {
-    "Marathi": "marathi hit songs",
+# Curated genres are ingested from Deezer EDITORIAL PLAYLISTS (not raw title
+# search) so results are actually in-genre. The value is the playlist search
+# query; the key stays the exact genre label shown to the user and tagged.
+_GENRE_QUERIES = {
+    "Bollywood": "bollywood hits",
+    "Punjabi": "punjabi hits",
+    "Marathi": "marathi superhit songs",
     "Bengali": "bengali hit songs",
-    "Gujarati": "gujarati garba songs",
-    "Hollywood": "hollywood movie soundtrack",
+    "Gujarati": "gujarati garba hits",
+    "Tamil": "tamil hits",
+    "Telugu": "telugu hits",
+    "Indian Indie": "indian indie",
+    "Indian Classical": "indian classical ragas",
+    "Hollywood": "hollywood movie soundtracks",
+    "Jazz": "jazz classics",
     "Brazilian": "brazilian bossa nova samba",
 }
 
@@ -71,12 +79,24 @@ def list_genres() -> List[Dict]:
 
 
 def tracks_for_genre(genre: str, limit: int = 100) -> List[Track]:
-    """All candidate tracks for a genre (real or mock)."""
+    """All candidate tracks for a genre (real or mock), tagged with the exact genre.
+
+    Curated labels (Bollywood, Hollywood, regional, Jazz...) ingest from editorial
+    playlists so the pool is genuinely in-genre; anything else uses the Deezer
+    chart/search. Always falls back to the mock library so the app is never dead.
+    """
     if _SOURCE != "mock":
         try:
-            alias = _SEARCH_ALIASES.get(genre)
-            real = (dz.tracks_for_query(alias, genre, limit=limit) if alias
-                    else dz.tracks_for_genre(genre, limit=limit))
+            query = _GENRE_QUERIES.get(genre)
+            real: List[Track] = []
+            if query:
+                # 1. Editorial playlist (title-guarded) — cleanest in-genre pool.
+                real = dz.tracks_via_playlist(query, genre, limit=limit)
+                # 2. No curated playlist: richer keyword search than the bare label.
+                if not real:
+                    real = dz.tracks_for_query(query, genre, limit=limit)
+            if not real:  # 3. Deezer chart genre, or plain label search.
+                real = dz.tracks_for_genre(genre, limit=limit)
             if real:
                 return _remember(real)
         except dz.DeezerUnavailable:
@@ -103,19 +123,18 @@ def tracks_for_genre_mood(genre: str, mood: str, limit: int = 100) -> List[Track
 
     if _SOURCE != "mock":
         try:
+            # 1. A genre+mood editorial playlist ("Chill Bollywood") is the best fit.
             curated = dz.tracks_for_genre_mood(
                 genre, mood_mod.keywords_for(mood), mood, limit=limit)
             if curated:
                 return _remember(curated)
-            # No editorial playlist: descriptor-filter the genre chart instead.
-            chart = dz.tracks_for_genre(genre, limit=max(limit * 3, 60))
-            if chart:
-                return _remember(mood_mod.filter_by_mood(chart, mood, limit))
         except dz.DeezerUnavailable:
-            pass  # fall through to mock
+            pass  # fall through to descriptor filtering below
 
+    # 2. No genre+mood playlist: take the exact-genre pool and descriptor-filter
+    #    it to the mood target. Works for both real and mock sources.
     pool = tracks_for_genre(genre, limit=max(limit * 3, 60))
-    return _remember(mood_mod.filter_by_mood(pool, mood, limit))
+    return mood_mod.filter_by_mood(pool, mood, limit)
 
 
 def get_track_by_id(track_id: str) -> Optional[Track]:

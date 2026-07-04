@@ -124,6 +124,41 @@ def _search_tracks(name: str, limit: int) -> List[dict]:
     return _get(f"/search?q={q}&limit={limit}").get("data", [])
 
 
+def _playlist_tracks(query: str, label: str, limit: int,
+                     extra_tag: Optional[str] = None,
+                     must_contain: Optional[str] = None) -> List[Track]:
+    """Pull tracks from the best-matching Deezer editorial playlist for `query`.
+
+    Editorial playlists ("Bollywood Hits", "Marathi Superhits", "Chill Rock") are
+    genuinely curated by genre/mood, so this yields real in-genre songs rather than
+    title matches. `must_contain` (case-insensitive) rejects fuzzy playlist matches
+    whose title doesn't contain the required token (e.g. a "Marathon" workout
+    playlist matching a "marathi" query). Returns [] if nothing usable is found.
+    """
+    q = urllib.parse.quote(query)
+    playlists = _get(f"/search/playlist?q={q}&limit=8").get("data", [])
+    if must_contain:
+        needle = must_contain.casefold()
+        playlists = [p for p in playlists if needle in (p.get("title", "").casefold())]
+    playlists = sorted(playlists, key=lambda p: p.get("nb_tracks", 0), reverse=True)
+    for pl in playlists:
+        pid = pl.get("id")
+        if not pid:
+            continue
+        raw = _get(f"/playlist/{pid}/tracks?limit={limit}").get("data", [])
+        tracks = _tracks_from_raw(raw, label, extra_tag=extra_tag)
+        if tracks:
+            return tracks
+    return []
+
+
+def tracks_via_playlist(query: str, label: str, limit: int = 100) -> List[Track]:
+    """Curated genre ingestion: real in-genre songs from an editorial playlist,
+    tagged with the friendly `label` (e.g. query 'bollywood hits' -> tag 'Bollywood').
+    The playlist title must contain the genre's primary word to avoid fuzzy matches."""
+    return _playlist_tracks(query, label, limit, must_contain=label.split()[0])
+
+
 def tracks_for_query(query: str, label: str, limit: int = 100) -> List[Track]:
     """Search Deezer for `query` but tag results with the friendly `label`.
 
@@ -164,16 +199,10 @@ def tracks_for_genre_mood(genre: str, mood_keywords: List[str], mood_name: str,
     gid = _genre_id_for(genre)
     name = next((g["name"] for g in list_genres() if g["id"] == gid), genre) if gid else genre
     for kw in mood_keywords:
-        q = urllib.parse.quote(f"{kw} {name}")
-        playlists = _get(f"/search/playlist?q={q}&limit=5").get("data", [])
-        # Prefer the playlist with the most tracks (richer pool).
-        playlists = sorted(playlists, key=lambda p: p.get("nb_tracks", 0), reverse=True)
-        for pl in playlists:
-            pid = pl.get("id")
-            if not pid:
-                continue
-            raw = _get(f"/playlist/{pid}/tracks?limit={limit}").get("data", [])
-            tracks = _tracks_from_raw(raw, name, extra_tag=mood_name)
-            if tracks:
-                return tracks
+        # Require the genre word in the playlist title so "Chill Bollywood" matches
+        # but a generic "Chill Hits" (wrong genre) does not.
+        tracks = _playlist_tracks(f"{kw} {name}", name, limit,
+                                  extra_tag=mood_name, must_contain=name.split()[0])
+        if tracks:
+            return tracks
     return []
