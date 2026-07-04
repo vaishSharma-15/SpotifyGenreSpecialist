@@ -105,6 +105,20 @@ def _genre_id_for(genre: str) -> Optional[int]:
     return None
 
 
+def _tracks_from_raw(raw: List[dict], genre_name: str,
+                     extra_tag: Optional[str] = None) -> List[Track]:
+    if not raw:
+        return []
+    ranks = [t.get("rank", 0) or 0 for t in raw]
+    lo, hi = min(ranks), max(ranks)
+    tracks = [_to_track(t, genre_name, lo, hi) for t in raw]
+    if extra_tag:
+        for t in tracks:
+            if extra_tag not in t.genre_tags:
+                t.genre_tags.append(extra_tag)
+    return tracks
+
+
 def tracks_for_genre(genre: str, limit: int = 100) -> List[Track]:
     """Real tracks for a genre (by name or numeric id). Raises DeezerUnavailable."""
     gid = _genre_id_for(genre)
@@ -116,8 +130,31 @@ def tracks_for_genre(genre: str, limit: int = 100) -> List[Track]:
         # Fallback path: search by genre name for broader coverage.
         q = urllib.parse.quote(name)
         raw = _get(f"/search?q={q}&limit={limit}").get("data", [])
-    if not raw:
-        return []
-    ranks = [t.get("rank", 0) or 0 for t in raw]
-    lo, hi = min(ranks), max(ranks)
-    return [_to_track(t, name, lo, hi) for t in raw]
+    return _tracks_from_raw(raw, name)
+
+
+def tracks_for_genre_mood(genre: str, mood_keywords: List[str], mood_name: str,
+                          limit: int = 100) -> List[Track]:
+    """Real, mood-curated tracks: find a Deezer editorial mood playlist for the
+    genre, then return its tracks. Falls back to [] so callers can descriptor-filter.
+
+    Strategy: search playlists for "<mood keyword> <genre>", take the largest
+    matching playlist and pull its tracks. Deezer's editorial playlists ("Chill
+    Rock", "Happy Hits", ...) are genuinely mood-curated, unlike raw charts.
+    """
+    gid = _genre_id_for(genre)
+    name = next((g["name"] for g in list_genres() if g["id"] == gid), genre) if gid else genre
+    for kw in mood_keywords:
+        q = urllib.parse.quote(f"{kw} {name}")
+        playlists = _get(f"/search/playlist?q={q}&limit=5").get("data", [])
+        # Prefer the playlist with the most tracks (richer pool).
+        playlists = sorted(playlists, key=lambda p: p.get("nb_tracks", 0), reverse=True)
+        for pl in playlists:
+            pid = pl.get("id")
+            if not pid:
+                continue
+            raw = _get(f"/playlist/{pid}/tracks?limit={limit}").get("data", [])
+            tracks = _tracks_from_raw(raw, name, extra_tag=mood_name)
+            if tracks:
+                return tracks
+    return []

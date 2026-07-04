@@ -53,6 +53,12 @@ def genres():
     return {"genres": catalog.list_genres()}
 
 
+@app.get("/moods")
+def moods():
+    """Moods the user can layer on top of a genre (energy/valence targets)."""
+    return {"moods": catalog.list_moods()}
+
+
 @app.get("/personas")
 def list_personas():
     return {"personas": [
@@ -67,9 +73,10 @@ def recommend(
     locked_genre: str,
     dial_position: float = Query(0.5, ge=0.0, le=1.0),  # edge cases 1.5/3.4
     limit: int = Query(5, ge=1, le=50),
+    mood: str = Query("", description="Optional mood filter (e.g. Chill, Energetic, Happy)"),
     exclude: str = Query("", description="Comma-separated track IDs already served (endless discovery)"),
 ):
-    """Genre-locked recommendations from real data.
+    """Genre-locked (and optionally mood-filtered) recommendations from real data.
 
     `exclude` carries the IDs already shown so that when a playlist/queue finishes
     the client can call again and get the next batch of the SAME genre (endless
@@ -79,7 +86,10 @@ def recommend(
     if persona is None:  # edge case 3.1
         raise HTTPException(404, f"Unknown persona: {persona_id}")
 
-    candidates = catalog.tracks_for_genre(locked_genre, limit=100)
+    if mood:
+        candidates = catalog.tracks_for_genre_mood(locked_genre, mood, limit=100)
+    else:
+        candidates = catalog.tracks_for_genre(locked_genre, limit=100)
     served = {s for s in exclude.split(",") if s}
     excluded = set(persona.recently_played) | _novelty.get_excluded(persona_id) | served
 

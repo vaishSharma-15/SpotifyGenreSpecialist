@@ -10,6 +10,7 @@ import os
 from typing import Dict, List, Optional
 
 from . import deezer_provider as dz
+from . import mood as mood_mod
 from .models import Track
 from .mock_library import TRACK_LIBRARY
 
@@ -50,6 +51,38 @@ def tracks_for_genre(genre: str, limit: int = 100) -> List[Track]:
     target = genre.strip().casefold()
     return _remember([t for t in TRACK_LIBRARY
                      if any(g.strip().casefold() == target for g in t.genre_tags)])
+
+
+def list_moods() -> List[Dict]:
+    return mood_mod.list_moods()
+
+
+def tracks_for_genre_mood(genre: str, mood: str, limit: int = 100) -> List[Track]:
+    """Candidate tracks for a genre filtered/curated by mood (real or mock).
+
+    Ingestion order (each step falls back to the next — never dead):
+      1. Real Deezer editorial mood playlist for the genre.
+      2. Real Deezer genre chart, then descriptor-filtered to the mood target.
+      3. Mock library for the genre, descriptor-filtered to the mood target.
+    """
+    if not mood or not mood_mod.is_mood(mood):
+        return tracks_for_genre(genre, limit=limit)  # no/invalid mood -> genre only
+
+    if _SOURCE != "mock":
+        try:
+            curated = dz.tracks_for_genre_mood(
+                genre, mood_mod.keywords_for(mood), mood, limit=limit)
+            if curated:
+                return _remember(curated)
+            # No editorial playlist: descriptor-filter the genre chart instead.
+            chart = dz.tracks_for_genre(genre, limit=max(limit * 3, 60))
+            if chart:
+                return _remember(mood_mod.filter_by_mood(chart, mood, limit))
+        except dz.DeezerUnavailable:
+            pass  # fall through to mock
+
+    pool = tracks_for_genre(genre, limit=max(limit * 3, 60))
+    return mood_mod.filter_by_mood(pool, mood, limit)
 
 
 def get_track_by_id(track_id: str) -> Optional[Track]:
