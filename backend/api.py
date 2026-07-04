@@ -111,14 +111,14 @@ def recommend(
 
 
 @app.post("/why-line")
-def why_line(track_id: str, persona_id: str, mood: str = ""):
+def why_line(track_id: str, persona_id: str, mood: str = "", recent: str = ""):
     track = catalog.get_track_by_id(track_id)
     persona = get_persona_by_id(persona_id)
     if track is None:  # edge case 3.2
         raise HTTPException(400, f"Unknown track: {track_id}")
     if persona is None:  # edge case 3.1
         raise HTTPException(400, f"Unknown persona: {persona_id}")
-    return {"why_line": generate_why(track, persona, mood=mood)}
+    return {"why_line": generate_why(track, persona, mood=mood, recent=recent)}
 
 
 @app.get("/adjacency")

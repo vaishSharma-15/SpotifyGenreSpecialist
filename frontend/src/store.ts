@@ -19,6 +19,7 @@ interface AppState {
 
   served: string[]
   feedback: FeedbackEntry[]
+  recentSaves: string[] // titles of recently saved songs (for the why-line)
 
   setPersona: (id: string) => void
   setGenre: (g: string) => void
@@ -55,8 +56,9 @@ export const useStore = create<AppState>((set, get) => ({
 
   served: [],
   feedback: [],
+  recentSaves: [],
 
-  setPersona: (id) => set({ personaId: id, served: [], feedback: [] }),
+  setPersona: (id) => set({ personaId: id, served: [], feedback: [], recentSaves: [] }),
   setGenre: (g) => set({ genre: g, served: [] }),
   setMood: (m) => set({ mood: m, served: [] }),
   setDial: (d) => set({ dial: d }),
@@ -66,9 +68,9 @@ export const useStore = create<AppState>((set, get) => ({
 
   playTrack: (t) => {
     set({ nowPlaying: t, isPlaying: true, currentWhy: '', whyLoading: true })
-    const { personaId, mood } = get()
+    const { personaId, mood, recentSaves } = get()
     api
-      .whyLine(t.id, personaId, mood)
+      .whyLine(t.id, personaId, mood, recentSaves.slice(0, 3).join(', '))
       .then((w) => {
         if (get().nowPlaying?.id === t.id) set({ currentWhy: w, whyLoading: false })
       })
@@ -103,5 +105,16 @@ export const useStore = create<AppState>((set, get) => ({
   addServed: (ids) => set((s) => ({ served: [...new Set([...s.served, ...ids])] })),
   resetServed: () => set({ served: [] }),
   addFeedback: (trackId, action) =>
-    set((s) => ({ feedback: [{ track_id: trackId, action }, ...s.feedback].slice(0, 30) })),
+    set((s) => {
+      const saved =
+        action === 'SAVE'
+          ? [s.queue.find((t) => t.id === trackId)?.title, ...s.recentSaves].filter(
+              (x): x is string => Boolean(x),
+            )
+          : s.recentSaves
+      return {
+        feedback: [{ track_id: trackId, action }, ...s.feedback].slice(0, 30),
+        recentSaves: [...new Set(saved)].slice(0, 8),
+      }
+    }),
 }))

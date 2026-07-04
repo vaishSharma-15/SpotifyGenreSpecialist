@@ -17,33 +17,22 @@ from .mock_library import TRACK_LIBRARY
 
 _SOURCE = os.getenv("DATA_SOURCE", "deezer").lower()
 
-# Curated labels surfaced at the top of the picker. These aren't Deezer chart
-# genres — they resolve via keyword search (tracks_for_genre handles that), which
-# lets us offer Indian/regional catalogs the Deezer genre list doesn't expose.
-_FEATURED_GENRES = [{"id": name, "name": name} for name in [
-    # Indian / regional
-    "Bollywood", "Punjabi", "Marathi", "Bengali", "Gujarati",
-    "Tamil", "Indian Indie", "Indian Classical",
-    # Western / international
-    "Hollywood", "Jazz", "Brazilian",
-]]
-
-# Curated genres are ingested from Deezer EDITORIAL PLAYLISTS (not raw title
-# search) so results are actually in-genre. The value is the playlist search
-# query; the key stays the exact genre label shown to the user and tagged.
+# A tight, curated genre list — every one is recognizable and returns real,
+# playable, in-genre songs from a Deezer editorial playlist. The value is the
+# playlist search query; the key is the exact label shown to the user and tagged.
 _GENRE_QUERIES = {
+    "Pop": "pop hits",
     "Bollywood": "bollywood hits",
+    "Hip-Hop": "hip hop hits",
+    "Rock": "rock hits",
     "Punjabi": "punjabi hits",
-    "Marathi": "marathi superhit songs",
-    "Bengali": "bengali hit songs",
-    "Gujarati": "gujarati garba hits",
+    "R&B": "rnb hits",
+    "Dance": "dance hits",
     "Tamil": "tamil hits",
-    "Indian Indie": "indian indie",
-    "Indian Classical": "indian classical ragas",
-    "Hollywood": "hollywood movie soundtracks",
     "Jazz": "jazz classics",
-    "Brazilian": "brazilian bossa nova samba",
+    "Hollywood": "hollywood movie soundtracks",
 }
+_FEATURED_GENRES = [{"id": name, "name": name} for name in _GENRE_QUERIES]
 
 # Genres exposed when running purely on mock data.
 _MOCK_GENRES = [{"id": name, "name": name}
@@ -62,19 +51,11 @@ def _remember(tracks: List[Track]) -> List[Track]:
     return cleaned
 
 
-def _merge_genres(base: List[Dict]) -> List[Dict]:
-    """Featured (Indian/regional) labels first, then the rest, de-duped by name."""
-    seen = {g["name"].casefold() for g in _FEATURED_GENRES}
-    return _FEATURED_GENRES + [g for g in base if g["name"].casefold() not in seen]
-
-
 def list_genres() -> List[Dict]:
+    """Only the curated, useful genres — no raw (localized) Deezer genre dump."""
     if _SOURCE == "mock":
-        return _merge_genres(_MOCK_GENRES)
-    try:
-        return _merge_genres(dz.list_genres())
-    except dz.DeezerUnavailable:
-        return _merge_genres(_MOCK_GENRES)
+        return _MOCK_GENRES
+    return _FEATURED_GENRES
 
 
 def _playable_count(tracks: List[Track]) -> int:
@@ -137,6 +118,13 @@ def tracks_for_genre_mood(genre: str, mood: str, limit: int = 100) -> List[Track
     if not mood or not mood_mod.is_mood(mood):
         return tracks_for_genre(genre, limit=limit)  # no/invalid mood -> genre only
 
+    def _tag(tracks: List[Track]) -> List[Track]:
+        # Strict tag match: the chosen mood is the intent, so every shown card
+        # carries exactly that mood (and its genre) — no mismatched badges.
+        for t in tracks:
+            t.mood = mood
+        return tracks
+
     if _SOURCE != "mock":
         try:
             # 1. A genre+mood editorial playlist ("Chill Bollywood") is the best fit
@@ -144,14 +132,14 @@ def tracks_for_genre_mood(genre: str, mood: str, limit: int = 100) -> List[Track
             curated = dz.tracks_for_genre_mood(
                 genre, mood_mod.keywords_for(mood), mood, limit=limit)
             if curated and _playable_count(curated) >= 3:
-                return _remember(_prefer_playable(curated))
+                return _tag(_remember(_prefer_playable(curated)))
         except dz.DeezerUnavailable:
             pass  # fall through to descriptor filtering below
 
     # 2. No genre+mood playlist: take the exact-genre pool and descriptor-filter
     #    it to the mood target. Works for both real and mock sources.
     pool = tracks_for_genre(genre, limit=max(limit * 3, 60))
-    return mood_mod.filter_by_mood(pool, mood, limit)
+    return _tag(mood_mod.filter_by_mood(pool, mood, limit))
 
 
 def get_track_by_id(track_id: str) -> Optional[Track]:

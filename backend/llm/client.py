@@ -21,20 +21,20 @@ ADJACENCY_MAP = {
 # --- why-line --------------------------------------------------------------
 
 def generate_why(track: Track, persona: ListenerPersona,
-                 mood: str = "", use_fallback: bool = False) -> str:
+                 mood: str = "", recent: str = "", use_fallback: bool = False) -> str:
     """Explain why THIS track fits the listener's chosen genre and mood.
 
-    Centered on the track's own genre/mood/sonic profile — not the persona's
-    reference artists — so a Bollywood pick isn't explained via folk artists.
+    Written in warm, natural language and grounded in the track's own genre/mood/
+    sonic profile — plus what the listener recently saved, when available.
     """
     if use_fallback or not has_api_key():
         return generate_why_fallback(track, persona, mood)
     try:
-        prompt = _why_prompt(track, mood)
+        prompt = _why_prompt(track, mood, recent)
         text = (call_llm(prompt) or "").strip().strip('"')
         if not text or _leaks(text):  # edge cases 2.3, 2.5
             return generate_why_fallback(track, persona, mood)
-        return _trim_words(text, 32)  # edge case 2.4
+        return _trim_words(text, 34)  # edge case 2.4
     except Exception:  # edge case 2.2 (timeout/error/not-implemented)
         return generate_why_fallback(track, persona, mood)
 
@@ -67,20 +67,22 @@ def generate_why_fallback(track: Track, persona: ListenerPersona, mood: str = ""
     return templates[idx]
 
 
-def _why_prompt(track: Track, mood: str) -> str:
+def _why_prompt(track: Track, mood: str, recent: str = "") -> str:
     sd = track.sound_descriptors
     genre = track.genre_tags[0] if track.genre_tags else "this genre"
-    mood_line = f"The listener is in a '{mood}' mood.\n" if mood else ""
+    mood_line = f"They're in a {mood} mood right now.\n" if mood else ""
+    recent_line = (f"They recently saved: {recent}. You may nod to that taste.\n"
+                   if recent else "")
     return (
-        f"You are a music expert helping someone explore {genre} music.\n"
-        f"{mood_line}"
-        f"Track: '{track.title}' by {track.artist}. Genre: {', '.join(track.genre_tags)}. "
+        f"You're a warm, knowledgeable music friend recommending a {genre} song.\n"
+        f"{mood_line}{recent_line}"
+        f"Song: '{track.title}' by {track.artist}. Genre: {', '.join(track.genre_tags)}. "
         f"Feel: energy={sd.get('energy')}, valence={sd.get('valence')} (happiness), "
         f"tempo={sd.get('tempo')} BPM.\n"
-        f"Write ONE sentence (15-25 words) on why THIS specific song fits {genre}"
-        f"{' and a ' + mood + ' mood' if mood else ''}. "
-        "Reference its actual sound (energy/mood/tempo) and artist — be specific to this track, "
-        "not generic. Do not mention other genres' artists, 'algorithm', or 'recommendation'.\n"
+        f"In ONE natural, conversational sentence (15-28 words), tell them why they'll like it — "
+        f"speak to the {genre}{' ' + mood if mood else ''} feel and the song's actual sound and artist. "
+        "Sound human and specific, like a friend who gets their taste — not a review or a template. "
+        "Don't mention other genres' artists, 'algorithm', or 'recommendation'.\n"
         "Sentence:"
     )
 

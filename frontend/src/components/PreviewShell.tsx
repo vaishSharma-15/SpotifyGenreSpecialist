@@ -76,18 +76,18 @@ export default function PreviewShell() {
 
   return (
     <div className="h-full flex flex-col bg-[#0b0b0b] text-white">
-      {/* Toolbar: toggle only */}
-      <header className="flex items-center justify-center h-14 border-b border-white/10 shrink-0">
-        <div className="flex items-center gap-1 p-1 rounded-full bg-spotify-highlight">
+      {/* Toolbar: compact toggle only */}
+      <header className="flex items-center justify-center h-10 border-b border-white/10 shrink-0">
+        <div className="flex items-center gap-0.5 p-0.5 rounded-full bg-spotify-highlight text-xs">
           {(['desktop', 'mobile'] as Device[]).map((d) => (
             <button
               key={d}
               onClick={() => setDevice(d)}
-              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition ${
+              className={`px-2.5 py-1 rounded-full font-semibold transition ${
                 device === d ? 'bg-white text-black' : 'text-spotify-subtle hover:text-white'
               }`}
             >
-              {d === 'desktop' ? '🖥 Desktop' : '📱 Mobile'}
+              {d === 'desktop' ? '🖥' : '📱'} {d === 'desktop' ? 'Desktop' : 'Mobile'}
             </button>
           ))}
         </div>

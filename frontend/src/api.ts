@@ -41,10 +41,11 @@ export const api = {
         (mood ? `&mood=${encodeURIComponent(mood)}` : ''),
     ),
 
-  whyLine: (trackId: string, personaId: string, mood = '') =>
+  whyLine: (trackId: string, personaId: string, mood = '', recent = '') =>
     post<{ why_line: string }>(
       `/why-line?track_id=${encodeURIComponent(trackId)}&persona_id=${encodeURIComponent(personaId)}` +
-        (mood ? `&mood=${encodeURIComponent(mood)}` : ''),
+        (mood ? `&mood=${encodeURIComponent(mood)}` : '') +
+        (recent ? `&recent=${encodeURIComponent(recent)}` : ''),
     ).then((r) => r.why_line),
 
   feedback: (personaId: string, trackId: string, action: ActionType) =>
