@@ -1,49 +1,87 @@
 import { useEffect, useRef, useState } from 'react'
 
 type Device = 'desktop' | 'mobile'
-const FRAMES: Record<Device, { w: number; h: number; label: string }> = {
-  desktop: { w: 1440, h: 900, label: 'Desktop' },
-  mobile: { w: 390, h: 844, label: 'Mobile' },
+const SCREEN = { w: 390, h: 844 } // iPhone-class logical points
+const STATUS_H = 44 // iOS status bar height
+const APP_H = SCREEN.h - STATUS_H
+
+/** Live iOS-style status bar: clock + cellular + wifi + battery. */
+function StatusBar() {
+  const [time, setTime] = useState(() => clock())
+  useEffect(() => {
+    const t = setInterval(() => setTime(clock()), 20000)
+    return () => clearInterval(t)
+  }, [])
+  return (
+    <div
+      className="flex items-center justify-between px-7 text-white shrink-0 select-none"
+      style={{ height: STATUS_H }}
+    >
+      <span className="text-[15px] font-semibold tabular-nums tracking-tight">{time}</span>
+      <div className="flex items-center gap-1.5">
+        {/* cellular */}
+        <svg width="17" height="11" viewBox="0 0 17 11" fill="white" aria-hidden>
+          <rect x="0" y="7" width="3" height="4" rx="1" />
+          <rect x="4.5" y="5" width="3" height="6" rx="1" />
+          <rect x="9" y="2.5" width="3" height="8.5" rx="1" />
+          <rect x="13.5" y="0" width="3" height="11" rx="1" />
+        </svg>
+        {/* wifi */}
+        <svg width="16" height="12" viewBox="0 0 16 12" fill="white" aria-hidden>
+          <path d="M8 2.2c2.6 0 5 1 6.8 2.7l-1.3 1.4A7.6 7.6 0 008 4.1 7.6 7.6 0 002.5 6.3L1.2 4.9A9.6 9.6 0 018 2.2zm0 3.3c1.5 0 2.9.6 3.9 1.6l-1.4 1.4A3.7 3.7 0 008 8.7a3.7 3.7 0 00-2.5 1L4.1 8.4A5.5 5.5 0 018 5.5zm0 3.2c.6 0 1.2.3 1.6.7L8 11.2 6.4 9.4c.4-.4 1-.7 1.6-.7z" />
+        </svg>
+        {/* battery */}
+        <div className="flex items-center gap-1">
+          <div className="relative w-[25px] h-[12px] rounded-[3px] border border-white/60 p-[1.5px]">
+            <div className="h-full rounded-[1.5px] bg-white" style={{ width: '72%' }} />
+          </div>
+          <div className="w-[1.5px] h-[4px] rounded-r bg-white/60" />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function clock() {
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
 }
 
 /**
- * Mentor preview: renders the live app inside a framed viewport so the same
- * build can be seen as desktop or phone. An <iframe> has its own viewport, so
- * the responsive breakpoints genuinely switch — this is the real layout, not a mock.
+ * Mentor preview: toggle the live app between full desktop and a real-looking
+ * iPhone. An <iframe> gives each mode its own viewport so the actual responsive
+ * breakpoints switch — this is the real layout, not a mockup.
  */
 export default function PreviewShell() {
   const [device, setDevice] = useState<Device>('desktop')
-  const stageRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
-  const frame = FRAMES[device]
+  const stageRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    if (device !== 'mobile') return
     const compute = () => {
-      const availW = (stageRef.current?.clientWidth ?? window.innerWidth) - 48
-      const availH = window.innerHeight - 150
-      setScale(Math.min(1, availW / frame.w, availH / frame.h))
+      const availH = window.innerHeight - 130
+      const availW = window.innerWidth - 48
+      setScale(Math.min(1, availH / (SCREEN.h + 24), availW / (SCREEN.w + 24)))
     }
     compute()
     window.addEventListener('resize', compute)
     return () => window.removeEventListener('resize', compute)
-  }, [device, frame.w, frame.h])
+  }, [device])
 
-  // Load the real app without the preview flag so it doesn't recurse.
   const src = `${import.meta.env.BASE_URL}?embed=1`
 
   return (
     <div className="h-full flex flex-col bg-[#0b0b0b] text-white">
       {/* Toolbar */}
-      <header className="flex items-center gap-4 px-5 h-16 border-b border-white/10">
+      <header className="flex items-center gap-4 px-5 h-14 border-b border-white/10 shrink-0">
         <div className="flex items-center gap-2 font-bold">
           <span className="w-3 h-3 rounded-full bg-spotify-green shadow-[0_0_12px_rgba(30,215,96,.7)]" />
           Discovery DJ
           <span className="text-spotify-subtle font-normal text-sm ml-1">· Mentor preview</span>
         </div>
 
-        {/* Segmented device toggle */}
         <div className="mx-auto flex items-center gap-1 p-1 rounded-full bg-spotify-highlight">
-          {(Object.keys(FRAMES) as Device[]).map((d) => (
+          {(['desktop', 'mobile'] as Device[]).map((d) => (
             <button
               key={d}
               onClick={() => setDevice(d)}
@@ -64,29 +102,40 @@ export default function PreviewShell() {
         </a>
       </header>
 
-      {/* Stage */}
-      <div ref={stageRef} className="flex-1 grid place-items-center overflow-auto p-6">
-        <div
-          className={device === 'mobile' ? 'bg-gradient-to-b from-[#2a2a2a] to-black rounded-[44px] p-[10px] shadow-2xl' : 'rounded-xl overflow-hidden shadow-2xl ring-1 ring-white/10'}
-          style={{ width: frame.w * scale, height: frame.h * scale + (device === 'mobile' ? 20 : 0) }}
-        >
-          <iframe
-            title={`${frame.label} preview`}
-            src={src}
-            style={{
-              width: frame.w,
-              height: frame.h,
-              border: 0,
-              transform: `scale(${scale})`,
-              transformOrigin: 'top left',
-              borderRadius: device === 'mobile' ? 34 : 8,
-            }}
-          />
+      {device === 'desktop' ? (
+        <iframe title="Desktop preview" src={src} className="flex-1 w-full border-0" />
+      ) : (
+        <div ref={stageRef} className="flex-1 grid place-items-center overflow-auto p-6">
+          {/* iPhone */}
+          <div style={{ transform: `scale(${scale})` }}>
+            <div className="relative bg-black rounded-[54px] p-[12px] shadow-[0_40px_80px_-20px_rgba(0,0,0,.9)] ring-1 ring-white/10">
+              {/* side buttons */}
+              <div className="absolute -left-[3px] top-[130px] w-[3px] h-16 rounded-l bg-[#222]" />
+              <div className="absolute -right-[3px] top-[160px] w-[3px] h-24 rounded-r bg-[#222]" />
+              <div
+                className="relative overflow-hidden bg-black flex flex-col rounded-[42px]"
+                style={{ width: SCREEN.w, height: SCREEN.h }}
+              >
+                <StatusBar />
+                {/* Dynamic Island */}
+                <div className="absolute top-[11px] left-1/2 -translate-x-1/2 w-[92px] h-[26px] rounded-full bg-black z-10" />
+                <iframe
+                  title="Mobile preview"
+                  src={src}
+                  style={{ width: SCREEN.w, height: APP_H, border: 0 }}
+                />
+                {/* home indicator */}
+                <div className="absolute bottom-[7px] left-1/2 -translate-x-1/2 w-[130px] h-[5px] rounded-full bg-white/85 z-10" />
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
-      <footer className="text-center text-xs text-spotify-subtle/60 py-3 border-t border-white/10">
-        Same responsive React build · {frame.label} viewport {frame.w}×{frame.h} · scaled to fit
+      <footer className="text-center text-xs text-spotify-subtle/60 py-2 border-t border-white/10 shrink-0">
+        {device === 'desktop'
+          ? 'Same responsive build · full desktop viewport'
+          : `Same responsive build · iPhone ${SCREEN.w}×${SCREEN.h}`}
       </footer>
     </div>
   )
