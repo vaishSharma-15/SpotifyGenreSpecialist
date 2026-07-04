@@ -10,8 +10,17 @@ import NowPlaying from './components/NowPlaying'
 import PlayerBar from './components/PlayerBar'
 import MobileNav from './components/MobileNav'
 import MobilePlayer from './components/MobilePlayer'
+import PreviewShell from './components/PreviewShell'
 
 export default function App() {
+  // Mentor device-preview mode: /?preview=1 frames the app as desktop or phone.
+  if (new URLSearchParams(window.location.search).get('preview') === '1') {
+    return <PreviewShell />
+  }
+  return <MainApp />
+}
+
+function MainApp() {
   const { view, personaId, setPersona, setGenre } = useStore()
   const [genres, setGenres] = useState<Genre[]>([])
   const [moods, setMoods] = useState<Mood[]>([])

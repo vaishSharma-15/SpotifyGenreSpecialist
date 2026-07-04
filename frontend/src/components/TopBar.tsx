@@ -33,6 +33,14 @@ export default function TopBar() {
 
       {/* Right cluster */}
       <div className="hidden sm:flex items-center gap-3 shrink-0">
+        <a
+          href={`${import.meta.env.BASE_URL}?preview=1`}
+          target="_top"
+          className="text-sm font-bold text-spotify-subtle hover:text-white hover:scale-105 transition"
+          title="See desktop & mobile layouts"
+        >
+          ⧉ Preview
+        </a>
         <button className="text-sm font-bold text-spotify-subtle hover:text-white hover:scale-105 transition">
           Explore Premium
         </button>
