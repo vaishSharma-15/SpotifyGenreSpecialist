@@ -79,6 +79,21 @@ def rank_by_taste_fit(tracks: List[Track], persona: ListenerPersona) -> List[Tra
     )
 
 
+def rank_by_mood(tracks: List[Track], mood: str) -> List[Track]:
+    """Order by closeness to the selected mood (best first), popularity as tiebreak."""
+    from ..data import mood as mood_mod
+    return sorted(
+        tracks,
+        key=lambda t: (mood_mod.mood_score(t, mood), t.popularity_score, t.release_year),
+        reverse=True,
+    )
+
+
+def rank_by_popularity(tracks: List[Track]) -> List[Track]:
+    """Persona-independent default ordering when no mood is selected."""
+    return sorted(tracks, key=lambda t: (t.popularity_score, t.release_year, t.id), reverse=True)
+
+
 def get_recommendations(
     persona: ListenerPersona,
     locked_genre: str,
@@ -86,13 +101,17 @@ def get_recommendations(
     excluded_ids: Set[str],
     limit: int = 5,
     candidate_tracks: List[Track] | None = None,
+    mood: str = "",
 ) -> List[Track]:
     """Rank recommendations from a candidate pool.
 
-    `candidate_tracks` lets callers inject a real (e.g. Deezer) genre pool; when
-    omitted we read the local mock library. Genre lock is still applied as a
-    safety net even when the pool is pre-filtered.
+    Ranking is driven by the selected `mood` (closest-fit first); with no mood we
+    fall back to popularity. `candidate_tracks` lets callers inject a real (e.g.
+    Deezer) genre pool; when omitted we read the local mock library. Genre lock is
+    still applied as a safety net even when the pool is pre-filtered.
     """
+    from ..data import mood as mood_mod
+
     if candidate_tracks is None:
         from ..data.mock_library import TRACK_LIBRARY
         candidate_tracks = TRACK_LIBRARY
@@ -103,5 +122,8 @@ def get_recommendations(
     pool = apply_genre_lock(candidate_tracks, locked_genre)
     pool = apply_popularity_ceiling(pool, dial_position)
     pool = apply_novelty_filter(pool, excluded_ids)
-    ranked = rank_by_taste_fit(pool, persona)
+    if mood and mood_mod.is_mood(mood):
+        ranked = rank_by_mood(pool, mood)
+    else:
+        ranked = rank_by_popularity(pool)
     return ranked[:limit]  # may be shorter than limit (edge cases 1.1, 1.2)

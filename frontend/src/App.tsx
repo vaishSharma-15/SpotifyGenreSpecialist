@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import type { Genre, Mood, Persona } from './types'
+import type { Genre, Mood } from './types'
 import { api } from './api'
 import { useStore } from './store'
 import TopBar from './components/TopBar'
@@ -13,15 +13,15 @@ import MobilePlayer from './components/MobilePlayer'
 
 export default function App() {
   const { view, personaId, setPersona, setGenre } = useStore()
-  const [personas, setPersonas] = useState<Persona[]>([])
   const [genres, setGenres] = useState<Genre[]>([])
   const [moods, setMoods] = useState<Mood[]>([])
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // Personas still drive novelty/feedback server-side; we just default to the
+    // first one (no Profile UI — ranking is genre + mood driven now).
     Promise.all([api.personas(), api.genres(), api.moods()])
       .then(([ps, gs, ms]) => {
-        setPersonas(ps)
         setGenres(gs)
         setMoods(ms)
         if (ps[0]) setPersona(ps[0].id)
@@ -54,7 +54,7 @@ export default function App() {
       {/* Middle: 3-pane on desktop, single column on mobile */}
       <div className="flex-1 flex gap-2 px-2 min-h-0">
         <div className="hidden md:block w-[280px] shrink-0">
-          <LibraryPanel personas={personas} genres={genres} moods={moods} />
+          <LibraryPanel genres={genres} moods={moods} />
         </div>
 
         <main className="flex-1 min-w-0 overflow-y-auto rounded-lg bg-gradient-to-b from-[#1f1f1f] to-spotify-base">
@@ -66,8 +66,8 @@ export default function App() {
         <NowPlaying />
       </div>
 
-      {/* Mobile controls bar (genre/mood/dial) under the header */}
-      <MobileControls personas={personas} genres={genres} moods={moods} />
+      {/* Mobile controls bar (genre/mood) under the header */}
+      <MobileControls genres={genres} moods={moods} />
 
       <PlayerBar />
       <MobileNav />
@@ -77,16 +77,10 @@ export default function App() {
 }
 
 /** Compact controls row shown only on mobile (desktop uses the LibraryPanel). */
-function MobileControls({ personas, genres, moods }: {
-  personas: Persona[]; genres: Genre[]; moods: Mood[]
-}) {
-  const { personaId, genre, mood, setPersona, setGenre, setMood } = useStore()
+function MobileControls({ genres, moods }: { genres: Genre[]; moods: Mood[] }) {
+  const { genre, mood, setGenre, setMood } = useStore()
   return (
     <div className="md:hidden flex gap-2 px-3 py-2 overflow-x-auto bg-black">
-      <select value={personaId} onChange={(e) => setPersona(e.target.value)}
-        className="bg-spotify-highlight text-white rounded-full px-3 py-1.5 text-xs shrink-0">
-        {personas.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-      </select>
       <select value={genre} onChange={(e) => setGenre(e.target.value)}
         className="bg-spotify-highlight text-white rounded-full px-3 py-1.5 text-xs shrink-0">
         {genres.map((g) => <option key={g.id} value={g.name}>{g.name}</option>)}

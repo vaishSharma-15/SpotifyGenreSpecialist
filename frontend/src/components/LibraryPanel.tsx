@@ -1,15 +1,13 @@
-import type { Genre, Mood, Persona } from '../types'
+import type { Genre, Mood } from '../types'
 import { useStore } from '../store'
 
 interface Props {
-  personas: Persona[]
   genres: Genre[]
   moods: Mood[]
 }
 
-export default function LibraryPanel({ personas, genres, moods }: Props) {
-  const { personaId, genre, mood, dial, view, setPersona, setGenre, setMood, setDial, setView } =
-    useStore()
+export default function LibraryPanel({ genres, moods }: Props) {
+  const { genre, mood, dial, view, setGenre, setMood, setDial, setView } = useStore()
   const dialLabel = dial < 0.34 ? 'Safe' : dial < 0.67 ? 'Balanced' : 'Adventurous'
 
   return (
@@ -50,24 +48,6 @@ export default function LibraryPanel({ personas, genres, moods }: Props) {
             Your Library
           </span>
         </div>
-
-        <label className="block text-[11px] font-bold uppercase tracking-wide mb-1">
-          Listener profile
-        </label>
-        <select
-          value={personaId}
-          onChange={(e) => setPersona(e.target.value)}
-          className="w-full bg-spotify-highlight text-white rounded px-3 py-2 text-sm outline-none"
-        >
-          {personas.map((p) => (
-            <option key={p.id} value={p.id}>
-              {p.name}
-            </option>
-          ))}
-        </select>
-        <p className="text-[11px] text-spotify-subtle/70 mt-1 mb-4">
-          Whose taste to rank picks for — orders results by this listener's energy/mood preference.
-        </p>
 
         <label className="block text-[11px] font-bold uppercase tracking-wide mb-1">🔒 Genre</label>
         <select

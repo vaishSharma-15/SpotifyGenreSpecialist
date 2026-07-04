@@ -105,7 +105,7 @@ def recommend(
     excluded = set(persona.recently_played) | _novelty.get_excluded(persona_id) | served
 
     recs = get_recommendations(persona, locked_genre, dial_position, excluded, limit,
-                               candidate_tracks=candidates)
+                               candidate_tracks=candidates, mood=mood)
     # exhausted flag lets the UI show a 'genre finished' state instead of looping
     return {"tracks": [_track_json(t) for t in recs], "exhausted": len(recs) == 0}
 
