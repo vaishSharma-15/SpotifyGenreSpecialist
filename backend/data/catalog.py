@@ -23,7 +23,7 @@ _SOURCE = os.getenv("DATA_SOURCE", "deezer").lower()
 _FEATURED_GENRES = [{"id": name, "name": name} for name in [
     # Indian / regional
     "Bollywood", "Punjabi", "Marathi", "Bengali", "Gujarati",
-    "Tamil", "Telugu", "Indian Indie", "Indian Classical",
+    "Tamil", "Indian Indie", "Indian Classical",
     # Western / international
     "Hollywood", "Jazz", "Brazilian",
 ]]
@@ -38,7 +38,6 @@ _GENRE_QUERIES = {
     "Bengali": "bengali hit songs",
     "Gujarati": "gujarati garba hits",
     "Tamil": "tamil hits",
-    "Telugu": "telugu hits",
     "Indian Indie": "indian indie",
     "Indian Classical": "indian classical ragas",
     "Hollywood": "hollywood movie soundtracks",
