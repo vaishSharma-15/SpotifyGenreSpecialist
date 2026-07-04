@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+
+# Env & secrets
+.env
+.env.local
+*.local
+
+# OS / editor
+.DS_Store
+
+# Runtime data
+backend/data/feedback_log.json

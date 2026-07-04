@@ -1,0 +1,22 @@
+# Render blueprint for the Discovery DJ FastAPI backend.
+# Deploy: push to GitHub, then "New > Blueprint" in Render and point at this repo.
+services:
+  - type: web
+    name: discovery-dj-api
+    runtime: python
+    plan: free
+    rootDir: .
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.api:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11"
+      - key: DATA_SOURCE
+        value: deezer
+      # Set this to your Vercel domain(s), comma-separated, after the frontend deploys.
+      - key: ALLOWED_ORIGINS
+        value: http://localhost:5173
+      # Optional: enable real LLM why-lines (otherwise deterministic fallback is used).
+      - key: ANTHROPIC_API_KEY
+        sync: false
