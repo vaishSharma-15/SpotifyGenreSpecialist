@@ -54,6 +54,19 @@ TRACK_LIBRARY: List[Track] = [
           ["Math Rock"], 61, _sd(0.70, 0.80, 142), 2015),
     Track("t18", "Sailor's Grave", "Covet", "https://picsum.photos/seed/t18/300",
           ["Math Rock", "Prog-Rock"], 39, _sd(0.68, 0.72, 150), 2018),
+    # --- Bollywood / Indian (offline fallback for the Indian catalog) ---
+    Track("t19", "Kesariya", "Arijit Singh", "https://picsum.photos/seed/t19/300",
+          ["Bollywood", "Indian"], 82, _sd(0.50, 0.80, 98), 2022),
+    Track("t20", "Kun Faya Kun", "A.R. Rahman", "https://picsum.photos/seed/t20/300",
+          ["Bollywood", "Indian", "Sufi"], 70, _sd(0.35, 0.60, 92), 2011),
+    Track("t21", "Channa Mereya", "Arijit Singh", "https://picsum.photos/seed/t21/300",
+          ["Bollywood", "Indian"], 74, _sd(0.30, 0.25, 90), 2016),
+    Track("t22", "Tum Hi Ho", "Arijit Singh", "https://picsum.photos/seed/t22/300",
+          ["Bollywood", "Indian"], 80, _sd(0.28, 0.45, 85), 2013),
+    Track("t23", "Nagada Sang Dhol", "Shreya Ghoshal", "https://picsum.photos/seed/t23/300",
+          ["Bollywood", "Indian"], 66, _sd(0.88, 0.85, 140), 2013),
+    Track("t24", "Ilahi", "Arijit Singh", "https://picsum.photos/seed/t24/300",
+          ["Bollywood", "Indian"], 63, _sd(0.65, 0.82, 120), 2013),
 ]
 
 

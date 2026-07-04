@@ -119,17 +119,26 @@ def _tracks_from_raw(raw: List[dict], genre_name: str,
     return tracks
 
 
+def _search_tracks(name: str, limit: int) -> List[dict]:
+    q = urllib.parse.quote(name)
+    return _get(f"/search?q={q}&limit={limit}").get("data", [])
+
+
 def tracks_for_genre(genre: str, limit: int = 100) -> List[Track]:
-    """Real tracks for a genre (by name or numeric id). Raises DeezerUnavailable."""
+    """Real tracks for a genre (by name or numeric id). Raises DeezerUnavailable.
+
+    If the label isn't a Deezer chart genre (e.g. "Bollywood", "Punjabi", "Tamil"),
+    we fall back to a keyword search so any user-facing label still returns songs.
+    """
     gid = _genre_id_for(genre)
     if gid is None:
-        return []
+        # Not a Deezer chart genre -> treat the label as a search query.
+        return _tracks_from_raw(_search_tracks(genre, limit), genre)
     name = next((g["name"] for g in list_genres() if g["id"] == gid), genre)
     raw = _get(f"/chart/{gid}/tracks?limit={limit}").get("data", [])
     if not raw:
         # Fallback path: search by genre name for broader coverage.
-        q = urllib.parse.quote(name)
-        raw = _get(f"/search?q={q}&limit={limit}").get("data", [])
+        raw = _search_tracks(name, limit)
     return _tracks_from_raw(raw, name)
 
 

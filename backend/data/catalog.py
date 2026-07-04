@@ -16,9 +16,16 @@ from .mock_library import TRACK_LIBRARY
 
 _SOURCE = os.getenv("DATA_SOURCE", "deezer").lower()
 
+# Curated labels surfaced at the top of the picker. These aren't Deezer chart
+# genres — they resolve via keyword search (tracks_for_genre handles that), which
+# lets us offer Indian/regional catalogs the Deezer genre list doesn't expose.
+_FEATURED_GENRES = [{"id": name, "name": name} for name in [
+    "Bollywood", "Punjabi", "Tamil", "Telugu", "Indian Indie", "Indian Classical",
+]]
+
 # Genres exposed when running purely on mock data.
 _MOCK_GENRES = [{"id": name, "name": name}
-                for name in ["Indie Folk", "Ambient", "Math Rock"]]
+                for name in ["Indie Folk", "Ambient", "Math Rock", "Bollywood"]]
 
 # id -> Track, populated lazily as genres are fetched (for /why-line lookups etc.)
 _seen: Dict[str, Track] = {t.id: t for t in TRACK_LIBRARY}
@@ -30,13 +37,19 @@ def _remember(tracks: List[Track]) -> List[Track]:
     return tracks
 
 
+def _merge_genres(base: List[Dict]) -> List[Dict]:
+    """Featured (Indian/regional) labels first, then the rest, de-duped by name."""
+    seen = {g["name"].casefold() for g in _FEATURED_GENRES}
+    return _FEATURED_GENRES + [g for g in base if g["name"].casefold() not in seen]
+
+
 def list_genres() -> List[Dict]:
     if _SOURCE == "mock":
-        return _MOCK_GENRES
+        return _merge_genres(_MOCK_GENRES)
     try:
-        return dz.list_genres()
+        return _merge_genres(dz.list_genres())
     except dz.DeezerUnavailable:
-        return _MOCK_GENRES
+        return _merge_genres(_MOCK_GENRES)
 
 
 def tracks_for_genre(genre: str, limit: int = 100) -> List[Track]:
