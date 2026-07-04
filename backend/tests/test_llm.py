@@ -57,3 +57,59 @@ def test_llm_error_falls_back(monkeypatch):  # 2.2
     monkeypatch.setattr(c, "has_api_key", lambda: True)
     monkeypatch.setattr(c, "call_llm", lambda p: (_ for _ in ()).throw(RuntimeError("boom")))
     assert len(generate_why(T, P1)) > 5  # fell back, no crash
+
+
+# --- config / provider wiring (no real network) ----------------------------
+
+from backend.llm import config as cfg
+
+
+def test_no_key_disabled(monkeypatch):
+    for k in ("ANTHROPIC_KEY", "GROQ_KEY", "OPENAI_KEY"):
+        monkeypatch.setattr(cfg.LLMConfig, k, None)
+    assert cfg.has_api_key() is False
+    import pytest
+    with pytest.raises(ValueError):
+        cfg.call_llm("hi")
+
+
+def test_provider_precedence(monkeypatch):
+    monkeypatch.setattr(cfg.LLMConfig, "ANTHROPIC_KEY", "a")
+    monkeypatch.setattr(cfg.LLMConfig, "GROQ_KEY", "g")
+    monkeypatch.setattr(cfg.LLMConfig, "OPENAI_KEY", "o")
+    assert cfg.LLMConfig.provider() == "anthropic"
+    monkeypatch.setattr(cfg.LLMConfig, "ANTHROPIC_KEY", None)
+    assert cfg.LLMConfig.provider() == "groq"
+    monkeypatch.setattr(cfg.LLMConfig, "GROQ_KEY", None)
+    assert cfg.LLMConfig.provider() == "openai"
+
+
+def test_call_anthropic_parses_response(monkeypatch):
+    monkeypatch.setattr(cfg.LLMConfig, "ANTHROPIC_KEY", "test-key")
+    monkeypatch.setattr(cfg.LLMConfig, "GROQ_KEY", None)
+    monkeypatch.setattr(cfg.LLMConfig, "OPENAI_KEY", None)
+    captured = {}
+
+    def fake_post(url, headers, payload):
+        captured["url"] = url
+        return {"content": [{"type": "text", "text": "Grounded why-line."}]}
+
+    monkeypatch.setattr(cfg, "_post", fake_post)
+    assert cfg.call_llm("prompt") == "Grounded why-line."
+    assert "anthropic" in captured["url"]
+
+
+def test_call_groq_parses_and_swaps_claude_model(monkeypatch):
+    monkeypatch.setattr(cfg.LLMConfig, "ANTHROPIC_KEY", None)
+    monkeypatch.setattr(cfg.LLMConfig, "GROQ_KEY", "test-key")
+    monkeypatch.setattr(cfg.LLMConfig, "OPENAI_KEY", None)
+    monkeypatch.setattr(cfg.LLMConfig, "MODEL", "claude-opus-4-8")
+    seen = {}
+
+    def fake_post(url, headers, payload):
+        seen["model"] = payload["model"]
+        return {"choices": [{"message": {"content": "Groq line."}}]}
+
+    monkeypatch.setattr(cfg, "_post", fake_post)
+    assert cfg.call_llm("prompt") == "Groq line."
+    assert seen["model"] != "claude-opus-4-8"  # claude id swapped for a Groq model

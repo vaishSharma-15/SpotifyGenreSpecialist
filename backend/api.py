@@ -13,7 +13,7 @@ from .data.feedback_store import get_feedback, save_feedback
 from .data.mock_library import LISTENER_PERSONAS, get_persona_by_id
 from .engine.novelty_manager import NoveltyManager
 from .engine.recommendation import get_recommendations
-from .llm.client import generate_why
+from .llm.client import generate_why, judge_genre_adjacency
 
 app = FastAPI(title="Discovery DJ API")
 
@@ -108,6 +108,14 @@ def why_line(track_id: str, persona_id: str):
     if persona is None:  # edge case 3.1
         raise HTTPException(400, f"Unknown persona: {persona_id}")
     return {"why_line": generate_why(track, persona)}
+
+
+@app.get("/adjacency")
+def adjacency(candidate_genre: str, user_genre: str):
+    """LLM genre-adjacency judgment: is a deep cut in `candidate_genre` still
+    'on-topic' for a `user_genre` fan? Degrades to a rule-based map without a key."""
+    is_adjacent, reasoning = judge_genre_adjacency(candidate_genre, user_genre)
+    return {"is_adjacent": is_adjacent, "reasoning": reasoning}
 
 
 class Feedback(BaseModel):
