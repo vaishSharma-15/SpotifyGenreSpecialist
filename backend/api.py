@@ -4,6 +4,16 @@ from __future__ import annotations
 import os
 import random
 
+# Load backend/.env before any module that reads env at import time (catalog,
+# llm.config). Optional dependency: if python-dotenv isn't installed we simply
+# rely on the real environment.
+try:
+    from dotenv import load_dotenv
+    from pathlib import Path
+    load_dotenv(Path(__file__).with_name(".env"))
+except ImportError:
+    pass
+
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
