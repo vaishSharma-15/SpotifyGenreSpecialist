@@ -51,11 +51,13 @@ export default function LibraryPanel({ personas, genres, moods }: Props) {
           </span>
         </div>
 
-        <label className="block text-[11px] font-bold uppercase tracking-wide mb-1">Profile</label>
+        <label className="block text-[11px] font-bold uppercase tracking-wide mb-1">
+          Listener profile
+        </label>
         <select
           value={personaId}
           onChange={(e) => setPersona(e.target.value)}
-          className="w-full mb-4 bg-spotify-highlight text-white rounded px-3 py-2 text-sm outline-none"
+          className="w-full bg-spotify-highlight text-white rounded px-3 py-2 text-sm outline-none"
         >
           {personas.map((p) => (
             <option key={p.id} value={p.id}>
@@ -63,6 +65,9 @@ export default function LibraryPanel({ personas, genres, moods }: Props) {
             </option>
           ))}
         </select>
+        <p className="text-[11px] text-spotify-subtle/70 mt-1 mb-4">
+          Whose taste to rank picks for — orders results by this listener's energy/mood preference.
+        </p>
 
         <label className="block text-[11px] font-bold uppercase tracking-wide mb-1">🔒 Genre</label>
         <select

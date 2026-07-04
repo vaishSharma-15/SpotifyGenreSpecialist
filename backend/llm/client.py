@@ -4,7 +4,6 @@ Every path degrades to a deterministic fallback (edge cases 2.1-2.10).
 """
 from __future__ import annotations
 
-import random
 from typing import Tuple
 
 from ..data.models import ListenerPersona, Track
@@ -21,40 +20,68 @@ ADJACENCY_MAP = {
 
 # --- why-line --------------------------------------------------------------
 
-def generate_why(track: Track, persona: ListenerPersona, use_fallback: bool = False) -> str:
+def generate_why(track: Track, persona: ListenerPersona,
+                 mood: str = "", use_fallback: bool = False) -> str:
+    """Explain why THIS track fits the listener's chosen genre and mood.
+
+    Centered on the track's own genre/mood/sonic profile — not the persona's
+    reference artists — so a Bollywood pick isn't explained via folk artists.
+    """
     if use_fallback or not has_api_key():
-        return generate_why_fallback(track, persona)
+        return generate_why_fallback(track, persona, mood)
     try:
-        prompt = _why_prompt(track, persona)
-        text = (call_llm(prompt) or "").strip()
+        prompt = _why_prompt(track, mood)
+        text = (call_llm(prompt) or "").strip().strip('"')
         if not text or _leaks(text):  # edge cases 2.3, 2.5
-            return generate_why_fallback(track, persona)
-        return _trim_words(text, 30)  # edge case 2.4
+            return generate_why_fallback(track, persona, mood)
+        return _trim_words(text, 32)  # edge case 2.4
     except Exception:  # edge case 2.2 (timeout/error/not-implemented)
-        return generate_why_fallback(track, persona)
+        return generate_why_fallback(track, persona, mood)
 
 
-def generate_why_fallback(track: Track, persona: ListenerPersona) -> str:
-    artist = persona.top_artists[0] if persona.top_artists else f"your {persona.top_genre} favorites"
+def _energy_word(e: float) -> str:
+    return "high-energy" if e >= 0.66 else "laid-back" if e <= 0.33 else "steady"
+
+
+def _valence_word(v: float) -> str:
+    return "upbeat" if v >= 0.66 else "melancholic" if v <= 0.33 else "wistful"
+
+
+def generate_why_fallback(track: Track, persona: ListenerPersona, mood: str = "") -> str:
+    """Deterministic, per-track template (no API key). Varies by track so no two
+    cards read identically, and describes the song's own genre/mood/sonics."""
     genre = track.genre_tags[0] if track.genre_tags else persona.top_genre
-    valence = track.sound_descriptors.get("valence", 0.5)
-    mood = "brighter" if valence >= 0.5 else "moodier"
-    templates = [
-        f"{track.title} digs into {genre} deeper than {artist}, with a {mood} pull you already gravitate toward.",
-        f"If {artist} is your anchor, {track.artist} carries the same {genre} grain at a {mood} tilt.",
-    ]
-    return random.choice(templates)
-
-
-def _why_prompt(track: Track, persona: ListenerPersona) -> str:
     sd = track.sound_descriptors
+    energy = _energy_word(sd.get("energy", 0.5))
+    valence = _valence_word(sd.get("valence", 0.5))
+    tempo = int(sd.get("tempo", 120))
+    mood_ctx = mood or track.mood or valence
+    templates = [
+        f"A {energy}, {valence} {genre} cut — {track.artist}'s {track.title} lands squarely in a {mood_ctx} mood.",
+        f"{track.title} carries {track.artist}'s {genre} signature with a {valence}, {tempo}-BPM pulse fit for {mood_ctx} listening.",
+        f"For a {mood_ctx} moment in {genre}, {track.title} brings {track.artist}'s {energy} phrasing and {valence} tone.",
+        f"{track.artist} keeps it {energy} and {valence} here — a {genre} pick made for {mood_ctx} vibes.",
+    ]
+    # Deterministic pick by track id so the same track is stable, different tracks differ.
+    idx = sum(ord(c) for c in track.id) % len(templates)
+    return templates[idx]
+
+
+def _why_prompt(track: Track, mood: str) -> str:
+    sd = track.sound_descriptors
+    genre = track.genre_tags[0] if track.genre_tags else "this genre"
+    mood_line = f"The listener is in a '{mood}' mood.\n" if mood else ""
     return (
-        f"You are a music discovery expert for {persona.name}, a {persona.top_genre} listener.\n"
-        f"Top artists: {', '.join(persona.top_artists)}.\n"
-        f"Track: {track.title} by {track.artist}; genres {', '.join(track.genre_tags)}; "
-        f"energy={sd.get('energy')}, valence={sd.get('valence')}, tempo={sd.get('tempo')} BPM.\n"
-        "Write ONE sentence (15-25 words) on why it fits their taste. Be specific about "
-        "genre/mood/artist lineage. Never say 'algorithm' or 'recommendation'.\nSentence:"
+        f"You are a music expert helping someone explore {genre} music.\n"
+        f"{mood_line}"
+        f"Track: '{track.title}' by {track.artist}. Genre: {', '.join(track.genre_tags)}. "
+        f"Feel: energy={sd.get('energy')}, valence={sd.get('valence')} (happiness), "
+        f"tempo={sd.get('tempo')} BPM.\n"
+        f"Write ONE sentence (15-25 words) on why THIS specific song fits {genre}"
+        f"{' and a ' + mood + ' mood' if mood else ''}. "
+        "Reference its actual sound (energy/mood/tempo) and artist — be specific to this track, "
+        "not generic. Do not mention other genres' artists, 'algorithm', or 'recommendation'.\n"
+        "Sentence:"
     )
 
 

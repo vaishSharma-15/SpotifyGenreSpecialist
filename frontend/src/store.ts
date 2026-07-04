@@ -66,9 +66,9 @@ export const useStore = create<AppState>((set, get) => ({
 
   playTrack: (t) => {
     set({ nowPlaying: t, isPlaying: true, currentWhy: '', whyLoading: true })
-    const personaId = get().personaId
+    const { personaId, mood } = get()
     api
-      .whyLine(t.id, personaId)
+      .whyLine(t.id, personaId, mood)
       .then((w) => {
         if (get().nowPlaying?.id === t.id) set({ currentWhy: w, whyLoading: false })
       })
