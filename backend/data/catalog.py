@@ -77,27 +77,44 @@ def list_genres() -> List[Dict]:
         return _merge_genres(_MOCK_GENRES)
 
 
+def _playable_count(tracks: List[Track]) -> int:
+    return sum(1 for t in tracks if t.preview_url)
+
+
+def _prefer_playable(tracks: List[Track]) -> List[Track]:
+    """Keep only tracks that have an audio preview, unless that leaves too few."""
+    playable = [t for t in tracks if t.preview_url]
+    return playable if len(playable) >= 3 else tracks
+
+
 def tracks_for_genre(genre: str, limit: int = 100) -> List[Track]:
     """All candidate tracks for a genre (real or mock), tagged with the exact genre.
 
-    Curated labels (Bollywood, Hollywood, regional, Jazz...) ingest from editorial
-    playlists so the pool is genuinely in-genre; anything else uses the Deezer
-    chart/search. Always falls back to the mock library so the app is never dead.
+    Curated labels ingest from editorial playlists (cleanest in-genre pool), but we
+    pick whichever source yields the most PLAYABLE tracks — some older playlists
+    have no 30s previews, and a song you can't play is useless here.
+    Always falls back to the mock library so the app is never dead.
     """
     if _SOURCE != "mock":
         try:
             query = _GENRE_QUERIES.get(genre)
-            real: List[Track] = []
+            sources = []
             if query:
-                # 1. Editorial playlist (title-guarded) — cleanest in-genre pool.
-                real = dz.tracks_via_playlist(query, genre, limit=limit)
-                # 2. No curated playlist: richer keyword search than the bare label.
-                if not real:
-                    real = dz.tracks_for_query(query, genre, limit=limit)
-            if not real:  # 3. Deezer chart genre, or plain label search.
-                real = dz.tracks_for_genre(genre, limit=limit)
-            if real:
-                return _remember(real)
+                sources.append(lambda: dz.tracks_via_playlist(query, genre, limit=limit))
+                sources.append(lambda: dz.tracks_for_query(query, genre, limit=limit))
+            sources.append(lambda: dz.tracks_for_genre(genre, limit=limit))
+
+            best: List[Track] = []
+            best_playable = -1
+            for src in sources:
+                got = src()
+                pc = _playable_count(got)
+                if pc > best_playable:
+                    best, best_playable = got, pc
+                if pc >= 5:  # plenty playable — stop early, keep it in-genre
+                    break
+            if best:
+                return _remember(_prefer_playable(best))
         except dz.DeezerUnavailable:
             pass  # fall through to mock
     target = genre.strip().casefold()
@@ -122,11 +139,12 @@ def tracks_for_genre_mood(genre: str, mood: str, limit: int = 100) -> List[Track
 
     if _SOURCE != "mock":
         try:
-            # 1. A genre+mood editorial playlist ("Chill Bollywood") is the best fit.
+            # 1. A genre+mood editorial playlist ("Chill Bollywood") is the best fit
+            #    — but only if enough of its tracks are actually playable.
             curated = dz.tracks_for_genre_mood(
                 genre, mood_mod.keywords_for(mood), mood, limit=limit)
-            if curated:
-                return _remember(curated)
+            if curated and _playable_count(curated) >= 3:
+                return _remember(_prefer_playable(curated))
         except dz.DeezerUnavailable:
             pass  # fall through to descriptor filtering below
 
