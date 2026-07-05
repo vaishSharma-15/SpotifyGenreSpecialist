@@ -18,8 +18,7 @@ export default function NowPlaying() {
     <aside className="hidden lg:flex flex-col bg-spotify-base rounded-lg overflow-hidden h-full w-[360px] shrink-0">
       {nowPlaying ? (
         <div className="flex flex-col overflow-y-auto">
-          <div className="px-4 py-3 font-bold text-white truncate">{nowPlaying.title}</div>
-          <div className="px-4">
+          <div className="px-4 pt-4">
             <img
               src={nowPlaying.album_art_url}
               alt={nowPlaying.title}
@@ -28,7 +27,7 @@ export default function NowPlaying() {
           </div>
           <div className="px-4 pt-4 flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <h2 className="text-2xl font-extrabold text-white leading-tight truncate">{nowPlaying.title}</h2>
+              <h2 className="text-2xl font-extrabold text-white leading-tight line-clamp-2">{nowPlaying.title}</h2>
               <p className="text-spotify-subtle truncate">{nowPlaying.artist}</p>
             </div>
             <button
