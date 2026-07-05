@@ -16,14 +16,19 @@ import MobilePlayer from './components/MobilePlayer'
 import PreviewShell from './components/PreviewShell'
 
 export default function App() {
-  // Mentor device-preview mode: /?preview=1 frames the app as desktop or phone.
-  if (new URLSearchParams(window.location.search).get('preview') === '1') {
-    return <PreviewShell />
+  // Mentor device-preview mode. Starts from ?preview=1 for a shareable deep
+  // link, but toggling afterward is pure client state — the URL never changes,
+  // so there's always just one link regardless of preview/device state.
+  const [previewMode, setPreviewMode] = useState(
+    () => new URLSearchParams(window.location.search).get('preview') === '1',
+  )
+  if (previewMode) {
+    return <PreviewShell onExit={() => setPreviewMode(false)} />
   }
-  return <MainApp />
+  return <MainApp onOpenPreview={() => setPreviewMode(true)} />
 }
 
-function MainApp() {
+function MainApp({ onOpenPreview }: { onOpenPreview: () => void }) {
   const { view, personaId, setPersona, setGenre } = useStore()
   const [genres, setGenres] = useState<Genre[]>([])
   const [moods, setMoods] = useState<Mood[]>([])
@@ -61,7 +66,7 @@ function MainApp() {
 
   return (
     <div className="h-full flex flex-col bg-black">
-      <TopBar />
+      <TopBar onOpenPreview={onOpenPreview} />
 
       {/* Middle: 3-pane on desktop, single column on mobile */}
       <div className="flex-1 flex gap-2 px-2 min-h-0">

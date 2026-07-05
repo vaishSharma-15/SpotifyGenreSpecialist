@@ -1,6 +1,6 @@
 import { useStore } from '../store'
 
-export default function TopBar() {
+export default function TopBar({ onOpenPreview }: { onOpenPreview: () => void }) {
   const { view, setView } = useStore()
   const params = new URLSearchParams(window.location.search)
   const isEmbedded = params.get('embed') === '1'
@@ -48,13 +48,13 @@ export default function TopBar() {
       {/* Right cluster */}
       <div className="hidden sm:flex items-center gap-3 shrink-0">
         {!isEmbedded && (
-          <a
-            href="?preview=1"
+          <button
+            onClick={onOpenPreview}
             className="text-sm font-bold text-spotify-subtle hover:text-white hover:scale-105 transition"
             title="Preview this app as Desktop or Mobile"
           >
             🖥 / 📱 Preview
-          </a>
+          </button>
         )}
         <button className="text-sm font-bold text-spotify-subtle hover:text-white hover:scale-105 transition">
           Explore Premium
