@@ -46,6 +46,21 @@ app.add_middleware(
 def health():
     return {"status": "ok"}
 
+
+@app.get("/debug/llm")
+def debug_llm():
+    """Temporary diagnostic: which provider is configured, and does a real call
+    succeed? Never exposes key values, only the provider name and any error."""
+    from .llm.config import LLMConfig, call_llm
+    provider = LLMConfig.provider()
+    if provider is None:
+        return {"provider": None, "note": "No API key detected in the environment."}
+    try:
+        text = call_llm("Reply with exactly the word: OK")
+        return {"provider": provider, "call_succeeded": True, "sample_reply": text}
+    except Exception as e:
+        return {"provider": provider, "call_succeeded": False, "error": str(e)}
+
 _novelty = NoveltyManager()
 
 
