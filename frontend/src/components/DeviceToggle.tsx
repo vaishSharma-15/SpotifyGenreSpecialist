@@ -1,7 +1,6 @@
 import { useStore } from '../store'
 
 const OPTIONS = [
-  { id: 'auto', label: 'Auto' },
   { id: 'desktop', label: '🖥 Desktop' },
   { id: 'mobile', label: '📱 Mobile' },
 ] as const

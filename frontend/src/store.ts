@@ -8,9 +8,8 @@ interface AppState {
   mood: string
   dial: number
   view: 'home' | 'discovery' | 'library'
-  // Mentor device preview: 'auto' follows the real viewport; 'desktop'/'mobile'
-  // force that layout regardless of window size, live, on the same page.
-  deviceOverride: 'auto' | 'desktop' | 'mobile'
+  // Mentor device preview: forces Desktop or Mobile layout, live, same page.
+  deviceOverride: 'desktop' | 'mobile'
 
   // playback
   queue: Track[]
@@ -34,7 +33,7 @@ interface AppState {
   setMood: (m: string) => void
   setDial: (d: number) => void
   setView: (v: 'home' | 'discovery' | 'library') => void
-  setDeviceOverride: (d: 'auto' | 'desktop' | 'mobile') => void
+  setDeviceOverride: (d: 'desktop' | 'mobile') => void
 
   setQueue: (tracks: Track[]) => void
   playTrack: (t: Track) => void
@@ -61,7 +60,7 @@ export const useStore = create<AppState>((set, get) => ({
   mood: '',
   dial: 0.5,
   view: 'home',
-  deviceOverride: 'auto',
+  deviceOverride: 'desktop',
 
   queue: [],
   nowPlaying: null,

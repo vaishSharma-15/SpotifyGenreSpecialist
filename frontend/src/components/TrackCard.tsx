@@ -46,7 +46,7 @@ export default function TrackCard({ track, onSkip }: Props) {
 
   return (
     <div
-      className="group relative bg-spotify-elevated hover:bg-spotify-highlight rounded-lg p-4 transition-colors duration-300 cursor-pointer"
+      className="group relative min-w-0 bg-spotify-elevated hover:bg-spotify-highlight rounded-lg p-4 transition-colors duration-300 cursor-pointer"
     >
       <div className="relative mb-4">
         <img
@@ -90,12 +90,12 @@ export default function TrackCard({ track, onSkip }: Props) {
         )}
       </div>
 
-      <div className="mt-3 flex items-center gap-2">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         <button
           onClick={like}
           aria-label={liked ? 'Remove from Liked Songs' : 'Save to Liked Songs'}
           aria-pressed={liked}
-          className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full transition ${
+          className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full transition shrink-0 ${
             liked
               ? 'bg-spotify-green text-black'
               : 'border border-spotify-subtle/40 text-white hover:border-white'
@@ -106,13 +106,10 @@ export default function TrackCard({ track, onSkip }: Props) {
         </button>
         <button
           onClick={skip}
-          className="text-xs font-bold px-3 py-1.5 rounded-full border border-spotify-subtle/40 text-white hover:border-white transition"
+          className="text-xs font-bold px-3 py-1.5 rounded-full border border-spotify-subtle/40 text-white hover:border-white transition shrink-0"
         >
           Skip
         </button>
-        <span className="ml-auto text-[10px] text-spotify-subtle/60">
-          pop {Math.round(track.popularity_score)}
-        </span>
       </div>
     </div>
   )
