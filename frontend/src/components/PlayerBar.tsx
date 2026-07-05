@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useStore } from '../store'
+import { useBreakpoint } from '../useBreakpoint'
 
 function fmt(sec: number) {
   if (!isFinite(sec)) return '0:00'
@@ -16,6 +17,7 @@ export default function PlayerBar() {
   const audioRef = useRef<HTMLAudioElement>(null)
   const [volume, setVolume] = useState(0.8)
   const [noPreview, setNoPreview] = useState(false)
+  const isMd = useBreakpoint(768)
 
   // Load a new source when the track changes.
   useEffect(() => {
@@ -57,7 +59,10 @@ export default function PlayerBar() {
   }
 
   return (
-    <footer className="hidden md:flex h-[72px] bg-black text-white items-center px-2 sm:px-4 gap-3">
+    <footer
+      className="h-[72px] bg-black text-white items-center px-2 sm:px-4 gap-3"
+      style={{ display: isMd ? 'flex' : 'none' }}
+    >
       <audio
         ref={audioRef}
         onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}

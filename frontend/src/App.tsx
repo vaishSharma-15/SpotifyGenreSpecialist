@@ -13,26 +13,15 @@ import PlayerBar from './components/PlayerBar'
 import MobileMiniPlayer from './components/MobileMiniPlayer'
 import MobileNav from './components/MobileNav'
 import MobilePlayer from './components/MobilePlayer'
-import PreviewShell from './components/PreviewShell'
+import DeviceToggle from './components/DeviceToggle'
+import { useBreakpoint } from './useBreakpoint'
 
 export default function App() {
-  // Mentor device-preview mode. Starts from ?preview=1 for a shareable deep
-  // link, but toggling afterward is pure client state — the URL never changes,
-  // so there's always just one link regardless of preview/device state.
-  const [previewMode, setPreviewMode] = useState(
-    () => new URLSearchParams(window.location.search).get('preview') === '1',
-  )
-  if (previewMode) {
-    return <PreviewShell onExit={() => setPreviewMode(false)} />
-  }
-  return <MainApp onOpenPreview={() => setPreviewMode(true)} />
-}
-
-function MainApp({ onOpenPreview }: { onOpenPreview: () => void }) {
   const { view, personaId, setPersona, setGenre } = useStore()
   const [genres, setGenres] = useState<Genre[]>([])
   const [moods, setMoods] = useState<Mood[]>([])
   const [error, setError] = useState<string | null>(null)
+  const isMd = useBreakpoint(768)
 
   useEffect(() => {
     // Personas still drive novelty/feedback server-side; we just default to the
@@ -66,13 +55,16 @@ function MainApp({ onOpenPreview }: { onOpenPreview: () => void }) {
 
   return (
     <div className="h-full flex flex-col bg-black">
-      <TopBar onOpenPreview={onOpenPreview} />
+      <DeviceToggle />
+      <TopBar />
 
       {/* Middle: 3-pane on desktop, single column on mobile */}
       <div className="flex-1 flex gap-2 px-2 min-h-0">
-        <div className="hidden md:block w-[280px] shrink-0">
-          <LibraryPanel />
-        </div>
+        {isMd && (
+          <div className="w-[280px] shrink-0">
+            <LibraryPanel />
+          </div>
+        )}
 
         <main className="flex-1 min-w-0 overflow-y-auto rounded-lg bg-gradient-to-b from-[#1f1f1f] to-spotify-base">
           {view === 'home' && <FilterTabs />}
