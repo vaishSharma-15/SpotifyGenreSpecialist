@@ -14,6 +14,7 @@ import MobileMiniPlayer from './components/MobileMiniPlayer'
 import MobileNav from './components/MobileNav'
 import MobilePlayer from './components/MobilePlayer'
 import DeviceToggle from './components/DeviceToggle'
+import PhoneFrame from './components/PhoneFrame'
 
 const isEmbedded = new URLSearchParams(window.location.search).get('embed') === '1'
 
@@ -21,19 +22,17 @@ export default function App() {
   const deviceOverride = useStore((s) => s.deviceOverride)
 
   // Mobile preview: an inline iframe of the same app, same URL, same page —
-  // no navigation, no bezel/mockup chrome. This is the only way to get
+  // no navigation, no separate mockup page. This is the only way to get
   // pixel-accurate mobile rendering while sitting in a desktop-wide browser
   // window, since CSS breakpoints respond to the real viewport, not JS state.
+  // Wrapped in real iPhone chrome (status bar, notch, home indicator) purely
+  // for visual polish — the iframe inside is the actual live app.
   if (!isEmbedded && deviceOverride === 'mobile') {
     return (
       <div className="h-full flex flex-col bg-black">
         <DeviceToggle />
         <div className="flex-1 grid place-items-center overflow-auto bg-[#0b0b0b] p-4">
-          <iframe
-            title="Mobile preview"
-            src={`${import.meta.env.BASE_URL}?embed=1`}
-            style={{ width: 390, height: '100%', maxHeight: 780, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 12 }}
-          />
+          <PhoneFrame src={`${import.meta.env.BASE_URL}?embed=1`} />
         </div>
       </div>
     )
