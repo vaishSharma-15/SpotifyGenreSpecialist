@@ -41,11 +41,24 @@ export const api = {
         (mood ? `&mood=${encodeURIComponent(mood)}` : ''),
     ),
 
-  whyLine: (trackId: string, personaId: string, mood = '', recent = '') =>
+  whyLine: (
+    trackId: string,
+    personaId: string,
+    genre = '',
+    mood = '',
+    topArtist = '',
+    signalType = '',
+    signalTrack = '',
+    signalArtist = '',
+  ) =>
     post<{ why_line: string }>(
       `/why-line?track_id=${encodeURIComponent(trackId)}&persona_id=${encodeURIComponent(personaId)}` +
+        (genre ? `&genre=${encodeURIComponent(genre)}` : '') +
         (mood ? `&mood=${encodeURIComponent(mood)}` : '') +
-        (recent ? `&recent=${encodeURIComponent(recent)}` : ''),
+        (topArtist ? `&top_artist=${encodeURIComponent(topArtist)}` : '') +
+        (signalType ? `&signal_type=${encodeURIComponent(signalType)}` : '') +
+        (signalTrack ? `&signal_track=${encodeURIComponent(signalTrack)}` : '') +
+        (signalArtist ? `&signal_artist=${encodeURIComponent(signalArtist)}` : ''),
     ).then((r) => r.why_line),
 
   feedback: (personaId: string, trackId: string, action: ActionType) =>

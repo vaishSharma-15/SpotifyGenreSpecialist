@@ -7,7 +7,7 @@ interface AppState {
   genre: string
   mood: string
   dial: number
-  view: 'home' | 'discovery'
+  view: 'home' | 'discovery' | 'library'
 
   // playback
   queue: Track[]
@@ -16,16 +16,21 @@ interface AppState {
   currentWhy: string
   whyLoading: boolean
   showMobilePlayer: boolean
+  progress: number
+  duration: number
+  seekTo: number | null // set to request a seek; consumed by PlayerBar's <audio>
 
   served: string[]
   feedback: FeedbackEntry[]
-  recentSaves: string[] // titles of recently saved songs (for the why-line)
+  lastSignal: { type: ActionType; track: string; artist: string } | null // for the why-line
+  likedTracks: Track[] // the user's "Liked Songs"
+  savedMixes: { genre: string; mood: string }[]
 
   setPersona: (id: string) => void
   setGenre: (g: string) => void
   setMood: (m: string) => void
   setDial: (d: number) => void
-  setView: (v: 'home' | 'discovery') => void
+  setView: (v: 'home' | 'discovery' | 'library') => void
 
   setQueue: (tracks: Track[]) => void
   playTrack: (t: Track) => void
@@ -34,10 +39,16 @@ interface AppState {
   next: () => void
   prev: () => void
   setShowMobilePlayer: (b: boolean) => void
+  setProgress: (p: number) => void
+  setDuration: (d: number) => void
+  seek: (t: number) => void
 
   addServed: (ids: string[]) => void
   resetServed: () => void
-  addFeedback: (trackId: string, action: ActionType) => void
+  addFeedback: (track: Track, action: ActionType) => void
+  toggleLike: (t: Track) => void
+  saveMix: () => void
+  applyMix: (genre: string, mood: string) => void
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -53,12 +64,17 @@ export const useStore = create<AppState>((set, get) => ({
   currentWhy: '',
   whyLoading: false,
   showMobilePlayer: false,
+  progress: 0,
+  duration: 0,
+  seekTo: null,
 
   served: [],
   feedback: [],
-  recentSaves: [],
+  lastSignal: null,
+  likedTracks: [],
+  savedMixes: [],
 
-  setPersona: (id) => set({ personaId: id, served: [], feedback: [], recentSaves: [] }),
+  setPersona: (id) => set({ personaId: id, served: [] }),
   setGenre: (g) => set({ genre: g, served: [] }),
   setMood: (m) => set({ mood: m, served: [] }),
   setDial: (d) => set({ dial: d }),
@@ -68,9 +84,15 @@ export const useStore = create<AppState>((set, get) => ({
 
   playTrack: (t) => {
     set({ nowPlaying: t, isPlaying: true, currentWhy: '', whyLoading: true })
-    const { personaId, mood, recentSaves } = get()
+    const { personaId, genre, mood, lastSignal, likedTracks } = get()
+    const topArtist = likedTracks.find((x) =>
+      x.id !== t.id && x.genre_tags.some((g) => t.genre_tags.includes(g)),
+    )?.artist ?? ''
     api
-      .whyLine(t.id, personaId, mood, recentSaves.slice(0, 3).join(', '))
+      .whyLine(
+        t.id, personaId, genre, mood, topArtist,
+        lastSignal?.type ?? '', lastSignal?.track ?? '', lastSignal?.artist ?? '',
+      )
       .then((w) => {
         if (get().nowPlaying?.id === t.id) set({ currentWhy: w, whyLoading: false })
       })
@@ -90,6 +112,9 @@ export const useStore = create<AppState>((set, get) => ({
     const { queue, nowPlaying } = get()
     if (!nowPlaying || queue.length === 0) return
     const i = queue.findIndex((t) => t.id === nowPlaying.id)
+    // Not found (e.g. the genre/mood filter changed queue since this track
+    // started) — don't let index -1 + 1 = 0 silently jump to queue[0].
+    if (i === -1) return
     const nxt = queue[i + 1]
     if (nxt) get().playTrack(nxt)
   },
@@ -97,24 +122,38 @@ export const useStore = create<AppState>((set, get) => ({
     const { queue, nowPlaying } = get()
     if (!nowPlaying || queue.length === 0) return
     const i = queue.findIndex((t) => t.id === nowPlaying.id)
+    if (i === -1) return
     const p = queue[i - 1]
     if (p) get().playTrack(p)
   },
   setShowMobilePlayer: (b) => set({ showMobilePlayer: b }),
+  setProgress: (p) => set({ progress: p }),
+  setDuration: (d) => set({ duration: d }),
+  seek: (t) => set({ seekTo: t }),
 
   addServed: (ids) => set((s) => ({ served: [...new Set([...s.served, ...ids])] })),
   resetServed: () => set({ served: [] }),
-  addFeedback: (trackId, action) =>
+  addFeedback: (track, action) =>
+    set((s) => ({
+      feedback: [{ track_id: track.id, action }, ...s.feedback].slice(0, 30),
+      lastSignal: { type: action, track: track.title, artist: track.artist },
+    })),
+
+  toggleLike: (t) =>
     set((s) => {
-      const saved =
-        action === 'SAVE'
-          ? [s.queue.find((t) => t.id === trackId)?.title, ...s.recentSaves].filter(
-              (x): x is string => Boolean(x),
-            )
-          : s.recentSaves
-      return {
-        feedback: [{ track_id: trackId, action }, ...s.feedback].slice(0, 30),
-        recentSaves: [...new Set(saved)].slice(0, 8),
-      }
+      const liked = s.likedTracks.some((x) => x.id === t.id)
+      const likedTracks = liked
+        ? s.likedTracks.filter((x) => x.id !== t.id)
+        : [t, ...s.likedTracks]
+      return { likedTracks }
     }),
+
+  saveMix: () =>
+    set((s) => {
+      const mix = { genre: s.genre, mood: s.mood }
+      if (s.savedMixes.some((m) => m.genre === mix.genre && m.mood === mix.mood)) return s
+      return { savedMixes: [mix, ...s.savedMixes].slice(0, 12) }
+    }),
+
+  applyMix: (genre, mood) => set({ genre, mood, served: [], view: 'discovery' }),
 }))

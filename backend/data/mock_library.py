@@ -28,17 +28,17 @@ TRACK_LIBRARY: List[Track] = [
           ["Indie Folk", "Alt-Country"], 33, _sd(0.40, 0.50, 100), 2021),
     Track("t06", "Naomi", "Neutral Milk Hotel", "https://picsum.photos/seed/t06/300",
           ["Indie Folk"], 55, _sd(0.60, 0.55, 120), 1998),
-    # --- Ambient ---
+    # --- Ambient / Instrumental ---
     Track("t07", "Re:member", "Ólafur Arnalds", "https://picsum.photos/seed/t07/300",
-          ["Ambient", "Minimalist Classical"], 64, _sd(0.25, 0.35, 85), 2018),
+          ["Ambient", "Instrumental", "Minimalist Classical"], 64, _sd(0.25, 0.35, 85), 2018),
     Track("t08", "All That I've Got", "Ben Frost", "https://picsum.photos/seed/t08/300",
           ["Ambient", "Drone"], 22, _sd(0.20, 0.20, 70), 2009),
     Track("t09", "Felt", "Nils Frahm", "https://picsum.photos/seed/t09/300",
-          ["Ambient"], 48, _sd(0.18, 0.30, 78), 2011),
+          ["Ambient", "Instrumental"], 48, _sd(0.18, 0.30, 78), 2011),
     Track("t10", "Emerald Rush", "Jon Hopkins", "https://picsum.photos/seed/t10/300",
-          ["Ambient", "Post-Rock"], 59, _sd(0.55, 0.45, 122), 2018),
+          ["Ambient", "Instrumental", "Post-Rock"], 59, _sd(0.55, 0.45, 122), 2018),
     Track("t11", "An Ending (Ascent)", "Brian Eno", "https://picsum.photos/seed/t11/300",
-          ["Ambient"], 68, _sd(0.15, 0.55, 60), 1983),
+          ["Ambient", "Instrumental"], 68, _sd(0.15, 0.55, 60), 1983),
     Track("t12", "Kompakt", "Gas", "https://picsum.photos/seed/t12/300",
           ["Ambient", "Drone"], 12, _sd(0.30, 0.25, 100), 2000),
     # --- Math Rock ---
@@ -67,6 +67,20 @@ TRACK_LIBRARY: List[Track] = [
           ["Bollywood", "Indian"], 66, _sd(0.88, 0.85, 140), 2013),
     Track("t24", "Ilahi", "Arijit Singh", "https://picsum.photos/seed/t24/300",
           ["Bollywood", "Indian"], 63, _sd(0.65, 0.82, 120), 2013),
+    # --- Soothing Bollywood (calm, Studying-friendly) ---
+    Track("t25", "Agar Tum Saath Ho", "Arijit Singh", "https://picsum.photos/seed/t25/300",
+          ["Bollywood", "Indian"], 77, _sd(0.15, 0.35, 68), 2015),
+    Track("t26", "Tum Se Hi", "Mohit Chauhan", "https://picsum.photos/seed/t26/300",
+          ["Bollywood", "Indian"], 68, _sd(0.20, 0.45, 78), 2007),
+    Track("t27", "Phir Le Aya Dil", "Rahat Fateh Ali Khan", "https://picsum.photos/seed/t27/300",
+          ["Bollywood", "Indian", "Sufi"], 60, _sd(0.22, 0.40, 72), 2012),
+    # --- Instrumental / calming (Studying, focus, rain) ---
+    Track("t28", "Still Frames", "Paresh Pahuja", "https://picsum.photos/seed/t28/300",
+          ["Instrumental", "Ambient"], 24, _sd(0.15, 0.50, 65), 2019),
+    Track("t29", "Gentle Rainfall", "Rain Sounds", "https://picsum.photos/seed/t29/300",
+          ["Instrumental", "Ambient"], 30, _sd(0.10, 0.45, 55), 2021),
+    Track("t30", "Nuvole Bianche", "Ludovico Einaudi", "https://picsum.photos/seed/t30/300",
+          ["Instrumental", "Ambient"], 72, _sd(0.20, 0.55, 70), 2004),
 ]
 
 

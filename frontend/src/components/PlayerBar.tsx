@@ -9,11 +9,11 @@ function fmt(sec: number) {
 }
 
 export default function PlayerBar() {
-  const { nowPlaying, isPlaying, togglePlay, setIsPlaying, next, prev, setShowMobilePlayer } =
-    useStore()
+  const {
+    nowPlaying, isPlaying, togglePlay, setIsPlaying, next, prev, setShowMobilePlayer,
+    progress, duration, setProgress, setDuration, seekTo, seek,
+  } = useStore()
   const audioRef = useRef<HTMLAudioElement>(null)
-  const [progress, setProgress] = useState(0)
-  const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(0.8)
   const [noPreview, setNoPreview] = useState(false)
 
@@ -39,7 +39,17 @@ export default function PlayerBar() {
     if (audioRef.current) audioRef.current.volume = volume
   }, [volume])
 
-  const seek = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Seek requests can come from here or from MobilePlayer (via the store).
+  useEffect(() => {
+    const a = audioRef.current
+    if (!a || seekTo === null) return
+    a.currentTime = seekTo
+    setProgress(seekTo)
+    seek(null as unknown as number)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seekTo])
+
+  const onSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const a = audioRef.current
     if (!a) return
     a.currentTime = parseFloat(e.target.value)
@@ -47,7 +57,7 @@ export default function PlayerBar() {
   }
 
   return (
-    <footer className="h-[72px] bg-black text-white flex items-center px-2 sm:px-4 gap-3">
+    <footer className="hidden md:flex h-[72px] bg-black text-white items-center px-2 sm:px-4 gap-3">
       <audio
         ref={audioRef}
         onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
@@ -111,7 +121,7 @@ export default function PlayerBar() {
             max={duration || 30}
             step={0.1}
             value={progress}
-            onChange={seek}
+            onChange={onSeek}
             style={{ ['--pct' as string]: `${duration ? (progress / duration) * 100 : 0}%` }}
             className="flex-1"
           />

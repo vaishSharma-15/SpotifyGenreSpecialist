@@ -1,7 +1,18 @@
+import { api } from '../api'
 import { useStore } from '../store'
 
 export default function NowPlaying() {
-  const { nowPlaying, currentWhy, whyLoading, feedback } = useStore()
+  const { nowPlaying, currentWhy, whyLoading, likedTracks, toggleLike, addFeedback, personaId } =
+    useStore()
+  const liked = nowPlaying ? likedTracks.some((t) => t.id === nowPlaying.id) : false
+
+  const like = () => {
+    if (!nowPlaying) return
+    const willLike = !liked
+    toggleLike(nowPlaying)
+    addFeedback(nowPlaying, willLike ? 'SAVE' : 'SKIP')
+    api.feedback(personaId, nowPlaying.id, willLike ? 'SAVE' : 'SKIP').catch(() => {})
+  }
 
   return (
     <aside className="hidden lg:flex flex-col bg-spotify-base rounded-lg overflow-hidden h-full w-[360px] shrink-0">
@@ -15,9 +26,22 @@ export default function NowPlaying() {
               className="w-full aspect-square object-cover rounded-lg shadow-xl"
             />
           </div>
-          <div className="px-4 pt-4">
-            <h2 className="text-2xl font-extrabold text-white leading-tight">{nowPlaying.title}</h2>
-            <p className="text-spotify-subtle">{nowPlaying.artist}</p>
+          <div className="px-4 pt-4 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="text-2xl font-extrabold text-white leading-tight truncate">{nowPlaying.title}</h2>
+              <p className="text-spotify-subtle truncate">{nowPlaying.artist}</p>
+            </div>
+            <button
+              onClick={like}
+              aria-pressed={liked}
+              className={`mt-1 shrink-0 text-xs font-bold px-3 py-1.5 rounded-full transition ${
+                liked
+                  ? 'bg-spotify-green text-black'
+                  : 'border border-spotify-subtle/40 text-white hover:border-white'
+              }`}
+            >
+              {liked ? 'Liked' : 'Like'}
+            </button>
           </div>
 
           {/* WHY explanation — the product's core differentiator */}
@@ -56,25 +80,6 @@ export default function NowPlaying() {
           </div>
         </div>
       )}
-
-      {/* Recent activity */}
-      <div className="mt-auto border-t border-white/5 p-4">
-        <h3 className="text-xs font-bold uppercase tracking-wide text-white mb-2">Recent activity</h3>
-        {feedback.length === 0 ? (
-          <p className="text-xs text-spotify-subtle/60">No feedback yet.</p>
-        ) : (
-          <ul className="space-y-1 text-xs">
-            {feedback.slice(0, 5).map((f, i) => (
-              <li key={i} className="flex items-center gap-2 text-spotify-subtle">
-                <span className={f.action === 'SAVE' ? 'text-spotify-green' : ''}>
-                  {f.action === 'SAVE' ? '♥' : '⤳'}
-                </span>
-                {f.action.toLowerCase()}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
     </aside>
   )
 }

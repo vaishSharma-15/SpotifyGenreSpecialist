@@ -6,6 +6,7 @@ html,
 body,
 #root {
   height: 100%;
+  height: 100dvh;
 }
 
 body {
@@ -30,12 +31,14 @@ body {
   background-clip: content-box;
 }
 
-/* Range input styled like Spotify's green track */
+/* Range input styled like Spotify's green track. Fill is always on (not just
+   :hover) since touch devices never trigger :hover — it must show while dragging. */
 input[type='range'] {
   -webkit-appearance: none;
+  touch-action: none;
   height: 4px;
   border-radius: 2px;
-  background: #535353;
+  background: linear-gradient(to right, #1db954 var(--pct, 50%), #535353 var(--pct, 50%));
   outline: none;
 }
 input[type='range']::-webkit-slider-thumb {
@@ -45,7 +48,4 @@ input[type='range']::-webkit-slider-thumb {
   border-radius: 50%;
   background: #fff;
   cursor: pointer;
-}
-input[type='range']:hover {
-  background: linear-gradient(to right, #1db954 var(--pct, 50%), #535353 var(--pct, 50%));
 }

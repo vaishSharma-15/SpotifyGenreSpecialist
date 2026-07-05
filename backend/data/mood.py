@@ -29,8 +29,9 @@ MOOD_PROFILES: Dict[str, Dict] = {
     "Calm":        {"energy": 0.20, "valence": 0.50, "keywords": ["calm", "peaceful"]},
     "Travelling":  {"energy": 0.70, "valence": 0.75, "keywords": ["travel", "road trip"]},
     "Soothing":    {"energy": 0.18, "valence": 0.60, "keywords": ["soothing", "calming"]},
-    "Studying":    {"energy": 0.35, "valence": 0.45, "keywords": ["study", "lofi study"]},
-    "Cooking":     {"energy": 0.55, "valence": 0.80, "keywords": ["cooking", "kitchen"]},
+    "Studying":    {"energy": 0.20, "valence": 0.45,
+                    "keywords": ["instrumental study", "calm piano", "lofi study", "ambient focus",
+                                 "rain sounds", "soothing bollywood"]},
 }
 
 

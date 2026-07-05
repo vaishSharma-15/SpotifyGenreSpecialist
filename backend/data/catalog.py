@@ -25,18 +25,16 @@ _GENRE_QUERIES = {
     "Bollywood": "bollywood hits",
     "Hip-Hop": "hip hop hits",
     "Rock": "rock hits",
-    "Punjabi": "punjabi hits",
     "R&B": "rnb hits",
     "Dance": "dance hits",
-    "Tamil": "tamil hits",
     "Jazz": "jazz classics",
-    "Hollywood": "hollywood movie soundtracks",
+    "Instrumental": "instrumental focus music",
 }
 _FEATURED_GENRES = [{"id": name, "name": name} for name in _GENRE_QUERIES]
 
 # Genres exposed when running purely on mock data.
 _MOCK_GENRES = [{"id": name, "name": name}
-                for name in ["Indie Folk", "Ambient", "Math Rock", "Bollywood"]]
+                for name in ["Indie Folk", "Ambient", "Math Rock", "Bollywood", "Instrumental"]]
 
 # id -> Track, populated lazily as genres are fetched (for /why-line lookups etc.)
 # Mock tracks are mood-categorized up front so lookups always carry both axes.

@@ -4,15 +4,39 @@ import { useStore } from '../store'
 
 interface Props {
   track: Track
+  onSkip?: (trackId: string) => void
 }
 
-export default function TrackCard({ track }: Props) {
-  const { personaId, nowPlaying, isPlaying, playTrack, togglePlay, addFeedback } = useStore()
-  const isCurrent = nowPlaying?.id === track.id
+export function Heart({ filled, size = 14 }: { filled: boolean; size?: number }) {
+  return filled ? (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+      <path d="M12 21s-6.7-4.35-9.33-8.02C.9 10.3 1.5 6.9 4.2 5.6c1.9-.9 4.1-.3 5.3 1.3l.5.7.5-.7c1.2-1.6 3.4-2.2 5.3-1.3 2.7 1.3 3.3 4.7 1.53 7.38C18.7 16.65 12 21 12 21z" />
+    </svg>
+  ) : (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+      <path d="M12 20s-6-4-8.4-7.2C1.9 10.6 2.4 7.6 4.7 6.5c1.7-.8 3.7-.3 4.8 1.2l.5.7.5-.7c1.1-1.5 3.1-2 4.8-1.2 2.3 1.1 2.8 4.1 1.1 6.3C18 16 12 20 12 20z" />
+    </svg>
+  )
+}
 
-  const act = (action: 'SAVE' | 'SKIP') => {
-    addFeedback(track.id, action)
-    api.feedback(personaId, track.id, action).catch(() => {})
+export default function TrackCard({ track, onSkip }: Props) {
+  const { personaId, nowPlaying, isPlaying, playTrack, togglePlay, addFeedback, toggleLike,
+          likedTracks, next } = useStore()
+  const isCurrent = nowPlaying?.id === track.id
+  const liked = likedTracks.some((t) => t.id === track.id)
+
+  const like = () => {
+    const willLike = !liked
+    toggleLike(track)
+    addFeedback(track, willLike ? 'SAVE' : 'SKIP')
+    api.feedback(personaId, track.id, willLike ? 'SAVE' : 'SKIP').catch(() => {})
+  }
+
+  const skip = () => {
+    addFeedback(track, 'SKIP')
+    api.feedback(personaId, track.id, 'SKIP').catch(() => {})
+    if (isCurrent) next()
+    onSkip?.(track.id)
   }
 
   const play = () => {
@@ -68,13 +92,20 @@ export default function TrackCard({ track }: Props) {
 
       <div className="mt-3 flex items-center gap-2">
         <button
-          onClick={() => act('SAVE')}
-          className="text-xs font-bold px-3 py-1.5 rounded-full bg-spotify-green text-black hover:bg-spotify-greenHover transition"
+          onClick={like}
+          aria-label={liked ? 'Remove from Liked Songs' : 'Save to Liked Songs'}
+          aria-pressed={liked}
+          className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full transition ${
+            liked
+              ? 'bg-spotify-green text-black'
+              : 'border border-spotify-subtle/40 text-white hover:border-white'
+          }`}
         >
-          ♥ Save
+          <Heart filled={liked} />
+          {liked ? 'Liked' : 'Save'}
         </button>
         <button
-          onClick={() => act('SKIP')}
+          onClick={skip}
           className="text-xs font-bold px-3 py-1.5 rounded-full border border-spotify-subtle/40 text-white hover:border-white transition"
         >
           Skip

@@ -89,9 +89,23 @@ def rank_by_mood(tracks: List[Track], mood: str) -> List[Track]:
     )
 
 
-def rank_by_popularity(tracks: List[Track]) -> List[Track]:
-    """Persona-independent default ordering when no mood is selected."""
-    return sorted(tracks, key=lambda t: (t.popularity_score, t.release_year, t.id), reverse=True)
+def rank_by_popularity(tracks: List[Track], dial_position: float = 0.0) -> List[Track]:
+    """Persona-independent default ordering when no mood is selected.
+
+    The popularity *ceiling* (ranked by which tracks even qualify) already reacts
+    to the dial, but chart-style pools often have far more than `limit` tracks
+    above the floor at every dial position — so a plain popularity sort returns
+    the same top-N regardless of dial. Blend in the dial here too: Safe (0) keeps
+    mainstream-first order; Bold (1) flips to deep-cuts-first; Balanced (0.5)
+    is popularity-neutral (ties broken deterministically), landing in between.
+    """
+    dial = max(0.0, min(1.0, dial_position))
+    weight = 1.0 - 2 * dial  # +1 at Safe, 0 at Balanced, -1 at Bold
+    return sorted(
+        tracks,
+        key=lambda t: (t.popularity_score * weight, t.release_year, t.id),
+        reverse=True,
+    )
 
 
 def get_recommendations(
@@ -125,5 +139,5 @@ def get_recommendations(
     if mood and mood_mod.is_mood(mood):
         ranked = rank_by_mood(pool, mood)
     else:
-        ranked = rank_by_popularity(pool)
+        ranked = rank_by_popularity(pool, dial_position)
     return ranked[:limit]  # may be shorter than limit (edge cases 1.1, 1.2)

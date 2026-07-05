@@ -20,23 +20,25 @@ ADJACENCY_MAP = {
 
 # --- why-line --------------------------------------------------------------
 
-def generate_why(track: Track, persona: ListenerPersona,
-                 mood: str = "", recent: str = "", use_fallback: bool = False) -> str:
-    """Explain why THIS track fits the listener's chosen genre and mood.
+def generate_why(track: Track, persona: ListenerPersona, genre: str = "", mood: str = "",
+                 top_artist: str = "", signal_type: str = "", signal_track: str = "",
+                 signal_artist: str = "", use_fallback: bool = False) -> str:
+    """Explain why THIS track fits the listener's chosen genre/mood and a real
+    listening signal (their top artist in-genre, or a recent save/skip).
 
-    Written in warm, natural language and grounded in the track's own genre/mood/
-    sonic profile — plus what the listener recently saved, when available.
+    Grounded in specifics, never generic praise — see `_why_prompt`.
     """
+    args = (track, persona, genre, mood, top_artist, signal_type, signal_track, signal_artist)
     if use_fallback or not has_api_key():
-        return generate_why_fallback(track, persona, mood)
+        return generate_why_fallback(*args)
     try:
-        prompt = _why_prompt(track, mood, recent)
+        prompt = _why_prompt(track, persona, genre, mood, top_artist, signal_type, signal_track, signal_artist)
         text = (call_llm(prompt) or "").strip().strip('"')
         if not text or _leaks(text):  # edge cases 2.3, 2.5
-            return generate_why_fallback(track, persona, mood)
-        return _trim_words(text, 34)  # edge case 2.4
+            return generate_why_fallback(*args)
+        return _trim_words(text, 22)  # edge case 2.4
     except Exception:  # edge case 2.2 (timeout/error/not-implemented)
-        return generate_why_fallback(track, persona, mood)
+        return generate_why_fallback(*args)
 
 
 def _energy_word(e: float) -> str:
@@ -47,42 +49,136 @@ def _valence_word(v: float) -> str:
     return "upbeat" if v >= 0.66 else "melancholic" if v <= 0.33 else "wistful"
 
 
-def generate_why_fallback(track: Track, persona: ListenerPersona, mood: str = "") -> str:
-    """Deterministic, per-track template (no API key). Varies by track so no two
-    cards read identically, and describes the song's own genre/mood/sonics."""
-    genre = track.genre_tags[0] if track.genre_tags else persona.top_genre
+def _persona_fit_phrase(track: Track, persona: ListenerPersona) -> str:
+    """How this track's sound compares to the listener's own historical taste —
+    the personal touch a bare genre/mood/popularity description is missing."""
+    sd = track.sound_descriptors
+    pv = persona.preference_vector
+    e_diff = sd.get("energy", 0.5) - pv.get("energy_preference", 0.5)
+    v_diff = sd.get("valence", 0.5) - pv.get("valence_preference", 0.5)
+    if abs(e_diff) < 0.15 and abs(v_diff) < 0.15:
+        return "right in your usual wheelhouse"
+    if e_diff >= 0.15:
+        return "punchier than what you usually reach for"
+    if e_diff <= -0.15:
+        return "calmer than your usual go-to"
+    if v_diff >= 0.15:
+        return "brighter than your typical pick"
+    return "moodier than your typical pick"
+
+
+def _pick(track: Track, options: list) -> str:
+    """Deterministic pick by track id so the same track is stable, different tracks differ."""
+    return options[sum(ord(c) for c in track.id) % len(options)]
+
+
+def generate_why_fallback(track: Track, persona: ListenerPersona, genre: str = "", mood: str = "",
+                          top_artist: str = "", signal_type: str = "", signal_track: str = "",
+                          signal_artist: str = "") -> str:
+    """Deterministic, per-track template (no API key).
+
+    Never just restates the genre/mood as a description — leads with something
+    the listener couldn't have guessed from their own inputs: a contrast with
+    what they just skipped, an echo of what they just saved, a comparison to
+    their top artist in the genre, or how mainstream/deep-cut this pick is.
+    Falls back through that same priority order the LLM prompt uses.
+    """
+    genre = genre or (track.genre_tags[0] if track.genre_tags else persona.top_genre)
     sd = track.sound_descriptors
     energy = _energy_word(sd.get("energy", 0.5))
     valence = _valence_word(sd.get("valence", 0.5))
-    tempo = int(sd.get("tempo", 120))
     mood_ctx = mood or track.mood or valence
-    templates = [
-        f"A {energy}, {valence} {genre} cut — {track.artist}'s {track.title} lands squarely in a {mood_ctx} mood.",
-        f"{track.title} carries {track.artist}'s {genre} signature with a {valence}, {tempo}-BPM pulse fit for {mood_ctx} listening.",
-        f"For a {mood_ctx} moment in {genre}, {track.title} brings {track.artist}'s {energy} phrasing and {valence} tone.",
-        f"{track.artist} keeps it {energy} and {valence} here — a {genre} pick made for {mood_ctx} vibes.",
-    ]
-    # Deterministic pick by track id so the same track is stable, different tracks differ.
-    idx = sum(ord(c) for c in track.id) % len(templates)
-    return templates[idx]
+    pop = track.popularity_score
+
+    if signal_type == "SKIP" and signal_track:
+        return _pick(track, [
+            f"You skipped \"{signal_track}\" — {track.artist}'s {energy} take on {genre} "
+            f"pulls back from that {signal_artist} energy for a {mood_ctx} mood instead.",
+            f"Less like \"{signal_track}\": {track.title} keeps the {genre} lane but trades its "
+            f"vibe for something more {valence} and {mood_ctx}.",
+        ])
+    if signal_type == "SAVE" and signal_track:
+        return _pick(track, [
+            f"Since \"{signal_track}\" landed, {track.artist} scratches that same {genre} itch "
+            f"from a {energy}, {mood_ctx} angle {signal_artist} doesn't cover.",
+            f"{track.title} follows the thread from \"{signal_track}\" into a {valence} corner of "
+            f"{genre} you haven't tapped yet.",
+        ])
+    if top_artist and top_artist.strip().casefold() != track.artist.strip().casefold():
+        return _pick(track, [
+            f"Past {top_artist} in your {genre} rotation, {track.artist} works the same {mood_ctx} "
+            f"lane with a {energy} edge {top_artist} rarely touches.",
+            f"{track.artist} isn't {top_artist}, but shares the {genre} DNA — just {valence} enough "
+            f"to fit a {mood_ctx} mood without repeating what you already know.",
+        ])
+    fit = _persona_fit_phrase(track, persona)
+    if pop < 35:
+        return _pick(track, [
+            f"A deep {genre} cut most playlists skip — {track.artist}'s {track.title} is {fit}, "
+            f"earning its {mood_ctx} spot on sound alone.",
+            f"Under-the-radar in {genre}: {track.artist} trades chart presence for something "
+            f"{fit}, worth the {mood_ctx} discovery.",
+        ])
+    if pop > 70:
+        return _pick(track, [
+            f"A bigger {genre} name than usual here — {track.artist} earns the {mood_ctx} slot "
+            f"by being {fit}, not just familiar.",
+            f"{track.title} is a proven {genre} favorite, but it's picked for this {mood_ctx} "
+            f"moment because it's {fit}.",
+        ])
+    return _pick(track, [
+        f"{track.artist} sits in the middle of the {genre} pack — {fit}, which earns the "
+        f"{mood_ctx} slot more than the name does.",
+        f"Neither a deep cut nor a chart-topper, {track.title} is {fit} — the real reason it "
+        f"fits your {mood_ctx} pick.",
+    ])
 
 
-def _why_prompt(track: Track, mood: str, recent: str = "") -> str:
-    sd = track.sound_descriptors
-    genre = track.genre_tags[0] if track.genre_tags else "this genre"
-    mood_line = f"They're in a {mood} mood right now.\n" if mood else ""
-    recent_line = (f"They recently saved: {recent}. You may nod to that taste.\n"
-                   if recent else "")
+def _why_prompt(track: Track, persona: ListenerPersona, genre: str, mood: str, top_artist: str,
+                signal_type: str, signal_track: str, signal_artist: str) -> str:
+    genre = genre or (track.genre_tags[0] if track.genre_tags else "this genre")
+    mood_text = mood or "no particular mood"
+    top_artist_text = top_artist or "none yet"
+    signal_line = (
+        f'- Recent signal: {signal_type} "{signal_track}" ({signal_artist})'
+        if signal_type and signal_track
+        else "- Recent signal: none yet"
+    )
+    popularity = int(round(track.popularity_score))
+    fit = _persona_fit_phrase(track, persona)
     return (
-        f"You're a warm, knowledgeable music friend recommending a {genre} song.\n"
-        f"{mood_line}{recent_line}"
-        f"Song: '{track.title}' by {track.artist}. Genre: {', '.join(track.genre_tags)}. "
-        f"Feel: energy={sd.get('energy')}, valence={sd.get('valence')} (happiness), "
-        f"tempo={sd.get('tempo')} BPM.\n"
-        f"In ONE natural, conversational sentence (15-28 words), tell them why they'll like it — "
-        f"speak to the {genre}{' ' + mood if mood else ''} feel and the song's actual sound and artist. "
-        "Sound human and specific, like a friend who gets their taste — not a review or a template. "
-        "Don't mention other genres' artists, 'algorithm', or 'recommendation'.\n"
+        "You are writing a one-sentence explanation for why a song was\n"
+        "recommended to a Spotify listener. Ground it in specifics — genre,\n"
+        "mood, or a real listening signal — never generic praise.\n"
+        "\n"
+        "Listener's inputs:\n"
+        f"- Genre selected: {genre}\n"
+        f"- Mood selected: {mood_text}\n"
+        f"- Top artist in this genre: {top_artist_text}\n"
+        f"{signal_line}\n"
+        f"- How this track compares to their usual taste: {fit}\n"
+        "\n"
+        "Candidate track:\n"
+        f"- Title: {track.title}\n"
+        f"- Artist: {track.artist}\n"
+        f"- Popularity: {popularity}/100\n"
+        "\n"
+        "Write ONE sentence, max 22 words, explaining why this track was picked.\n"
+        "Reference the genre/mood AND the specific listening signal (top artist\n"
+        "or recent like/skip) — don't just describe the track. Never open with\n"
+        "\"You'll love\" or similar praise phrases. If the recent signal is a skip,\n"
+        "explain how this pick differs from what was skipped, not why it's similar.\n"
+        "\n"
+        "Don't simply restate the genre and mood as a description of the track\n"
+        "(e.g. \"a mid-tier Bollywood pick fitting the chill mood with moderate\n"
+        "popularity\" — this is exactly the generic, impersonal phrasing to avoid).\n"
+        "Add something the listener couldn't have guessed from their own inputs —\n"
+        "a specific artist connection, a comparison to a past like/skip, or how\n"
+        "this compares to their usual taste (given above) — it must sound like it\n"
+        "was written FOR this listener, not a spec sheet of the track's stats.\n"
+        "If there's no top artist or recent signal, lean on the taste comparison\n"
+        "and popularity together (deep cut / proven favorite / middle-of-the-pack)\n"
+        "to explain why THIS listener, specifically, should hear it.\n"
         "Sentence:"
     )
 
