@@ -1,13 +1,6 @@
 import { api } from '../api'
 import { useStore } from '../store'
 
-function fmt(sec: number) {
-  if (!isFinite(sec)) return '0:00'
-  const m = Math.floor(sec / 60)
-  const s = Math.floor(sec % 60)
-  return `${m}:${s.toString().padStart(2, '0')}`
-}
-
 /** Full-screen mobile "now playing" with the Why explanation (Spotify-style). */
 export default function MobilePlayer() {
   const {
@@ -24,9 +17,6 @@ export default function MobilePlayer() {
     toggleLike,
     likedTracks,
     personaId,
-    progress,
-    duration,
-    seek,
   } = useStore()
 
   if (!showMobilePlayer || !nowPlaying) return null
@@ -72,21 +62,6 @@ export default function MobilePlayer() {
         <p className="text-sm text-white leading-relaxed">
           {whyLoading ? 'Thinking…' : currentWhy || '—'}
         </p>
-      </div>
-
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] text-spotify-subtle w-8 text-right tabular-nums">{fmt(progress)}</span>
-        <input
-          type="range"
-          min={0}
-          max={duration || 30}
-          step={0.1}
-          value={progress}
-          onChange={(e) => seek(parseFloat(e.target.value))}
-          style={{ ['--pct' as string]: `${duration ? (progress / duration) * 100 : 0}%` }}
-          className="flex-1"
-        />
-        <span className="text-[10px] text-spotify-subtle w-8 tabular-nums">{fmt(duration || 30)}</span>
       </div>
 
       <div className="flex items-center justify-center gap-8 text-white mt-3">

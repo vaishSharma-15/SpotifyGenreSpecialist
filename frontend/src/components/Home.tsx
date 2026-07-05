@@ -38,7 +38,7 @@ export default function Home({ genres }: Props) {
   }, [personaId, homeGenre, likedTracks.length])
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-extrabold text-white">{greeting()}</h1>
         <p className="text-spotify-subtle mt-1">
