@@ -92,7 +92,7 @@ function MainApp() {
           <LibraryPanel />
         </div>
 
-        <main className="flex-1 min-w-0 overflow-y-auto rounded-lg bg-gradient-to-b from-[#1f1f1f] to-spotify-base">
+        <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden rounded-lg bg-gradient-to-b from-[#1f1f1f] to-spotify-base">
           {view === 'home' && <FilterTabs />}
           <div className={`px-4 sm:px-6 pb-6 ${view !== 'home' ? 'pt-4 sm:pt-6' : ''}`}>
             {view === 'home' ? (

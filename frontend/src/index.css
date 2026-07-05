@@ -31,6 +31,16 @@ body {
   background-clip: content-box;
 }
 
+/* For rows that scroll horizontally (filter pills, etc.) — real apps don't
+   show a visible scrollbar track for these, it just reads as a stray bar. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Range input styled like Spotify's green track. Fill is always on (not just
    :hover) since touch devices never trigger :hover — it must show while dragging. */
 input[type='range'] {
