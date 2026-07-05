@@ -1,6 +1,5 @@
 import { api } from '../api'
 import { useStore } from '../store'
-import { useBreakpoint } from '../useBreakpoint'
 
 function fmt(sec: number) {
   if (!isFinite(sec)) return '0:00'
@@ -29,9 +28,8 @@ export default function MobilePlayer() {
     duration,
     seek,
   } = useStore()
-  const isLg = useBreakpoint(1024)
 
-  if (!showMobilePlayer || !nowPlaying || isLg) return null
+  if (!showMobilePlayer || !nowPlaying) return null
   const liked = likedTracks.some((t) => t.id === nowPlaying.id)
 
   const like = () => {
@@ -48,7 +46,7 @@ export default function MobilePlayer() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-gradient-to-b from-[#3a3a3a] to-black p-6"
+      className="fixed inset-0 z-50 flex flex-col overflow-y-auto bg-gradient-to-b from-[#3a3a3a] to-black p-6 lg:hidden"
       style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
     >
       <div className="flex items-center justify-between text-white mb-4 shrink-0">

@@ -1,16 +1,14 @@
 import { useStore } from '../store'
-import { useBreakpoint } from '../useBreakpoint'
 
 export default function TopBar() {
   const { view, setView } = useStore()
-  const isMd = useBreakpoint(768)
-  const isSm = useBreakpoint(640)
-  const showHeader = view !== 'discovery' || isMd
-
-  if (!showHeader) return null
 
   return (
-    <header className="h-16 flex items-center gap-4 px-4 bg-black text-white">
+    <header
+      className={`h-16 items-center gap-4 px-4 bg-black text-white ${
+        view === 'discovery' ? 'hidden md:flex' : 'flex'
+      }`}
+    >
       {/* Spotify glyph — acts as Home */}
       <button
         onClick={() => setView('home')}
@@ -46,27 +44,25 @@ export default function TopBar() {
       </div>
 
       {/* Right cluster */}
-      {isSm && (
-        <div className="flex items-center gap-3 shrink-0">
-          <button className="text-sm font-bold text-spotify-subtle hover:text-white hover:scale-105 transition">
-            Explore Premium
-          </button>
-          <button className="flex items-center gap-2 text-sm font-bold text-spotify-subtle hover:text-white transition">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-              <path d="M12 3v10.6l3.3-3.3 1.4 1.4L12 17.4 6.3 11.7l1.4-1.4L11 13.6V3zM5 19h14v2H5z" />
-            </svg>
-            Install App
-          </button>
-          <div
-            className="w-8 h-8 rounded-full bg-[#7b46b0] grid place-items-center text-white cursor-default"
-            aria-label="Profile"
-          >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-              <path d="M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-4.4 0-8 2.24-8 5v1h16v-1c0-2.76-3.6-5-8-5z" />
-            </svg>
-          </div>
+      <div className="hidden sm:flex items-center gap-3 shrink-0">
+        <button className="text-sm font-bold text-spotify-subtle hover:text-white hover:scale-105 transition">
+          Explore Premium
+        </button>
+        <button className="flex items-center gap-2 text-sm font-bold text-spotify-subtle hover:text-white transition">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M12 3v10.6l3.3-3.3 1.4 1.4L12 17.4 6.3 11.7l1.4-1.4L11 13.6V3zM5 19h14v2H5z" />
+          </svg>
+          Install App
+        </button>
+        <div
+          className="w-8 h-8 rounded-full bg-[#7b46b0] grid place-items-center text-white cursor-default"
+          aria-label="Profile"
+        >
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M12 12a5 5 0 100-10 5 5 0 000 10zm0 2c-4.4 0-8 2.24-8 5v1h16v-1c0-2.76-3.6-5-8-5z" />
+          </svg>
         </div>
-      )}
+      </div>
     </header>
   )
 }

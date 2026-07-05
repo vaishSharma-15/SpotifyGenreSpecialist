@@ -1,10 +1,8 @@
 import { useStore } from '../store'
-import { useBreakpoint } from '../useBreakpoint'
 
 export default function MobileNav() {
   const { view, setView, showMobilePlayer } = useStore()
-  const isMd = useBreakpoint(768)
-  if (showMobilePlayer || isMd) return null
+  if (showMobilePlayer) return null
 
   const item = (label: string, path: string, active: boolean, onClick: () => void, green = false) => (
     <button
@@ -23,7 +21,7 @@ export default function MobileNav() {
 
   return (
     <nav
-      className="flex bg-black border-t border-white/5 shrink-0"
+      className="md:hidden flex bg-black border-t border-white/5 shrink-0"
       style={{ paddingBottom: 'max(8px, env(safe-area-inset-bottom))' }}
     >
       {item('Home', 'M12 3.3l8 7.1V21h-5.5v-6h-5V21H4V10.4z', view === 'home', () => setView('home'))}

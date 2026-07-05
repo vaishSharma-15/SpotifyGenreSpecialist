@@ -1,14 +1,10 @@
 import { api } from '../api'
 import { useStore } from '../store'
-import { useBreakpoint } from '../useBreakpoint'
 
 export default function NowPlaying() {
   const { nowPlaying, currentWhy, whyLoading, likedTracks, toggleLike, addFeedback, personaId } =
     useStore()
-  const isLg = useBreakpoint(1024)
   const liked = nowPlaying ? likedTracks.some((t) => t.id === nowPlaying.id) : false
-
-  if (!isLg) return null
 
   const like = () => {
     if (!nowPlaying) return
@@ -19,7 +15,7 @@ export default function NowPlaying() {
   }
 
   return (
-    <aside className="flex flex-col bg-spotify-base rounded-lg overflow-hidden h-full w-[360px] shrink-0">
+    <aside className="hidden lg:flex flex-col bg-spotify-base rounded-lg overflow-hidden h-full w-[360px] shrink-0">
       {nowPlaying ? (
         <div className="flex flex-col overflow-y-auto">
           <div className="px-4 py-3 font-bold text-white truncate">{nowPlaying.title}</div>

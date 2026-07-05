@@ -1,5 +1,4 @@
 import { useStore } from '../store'
-import { useBreakpoint } from '../useBreakpoint'
 
 /** Real-Spotify-style mobile mini player: thin bar, small art, play/pause only.
  * The actual <audio> element lives in PlayerBar (kept mounted, just visually
@@ -7,15 +6,14 @@ import { useBreakpoint } from '../useBreakpoint'
 export default function MobileMiniPlayer() {
   const { nowPlaying, isPlaying, togglePlay, progress, duration, showMobilePlayer, setShowMobilePlayer } =
     useStore()
-  const isMd = useBreakpoint(768)
 
-  if (!nowPlaying || showMobilePlayer || isMd) return null
+  if (!nowPlaying || showMobilePlayer) return null
   const pct = duration ? (progress / duration) * 100 : 0
 
   return (
     <button
       onClick={() => setShowMobilePlayer(true)}
-      className="flex flex-col w-full bg-[#2a2a2a] text-white text-left shrink-0"
+      className="md:hidden flex flex-col w-full bg-[#2a2a2a] text-white text-left shrink-0"
     >
       <div className="h-[2px] w-full bg-white/10">
         <div className="h-full bg-spotify-green" style={{ width: `${pct}%` }} />

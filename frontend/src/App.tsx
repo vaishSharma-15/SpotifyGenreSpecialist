@@ -14,14 +14,44 @@ import MobileMiniPlayer from './components/MobileMiniPlayer'
 import MobileNav from './components/MobileNav'
 import MobilePlayer from './components/MobilePlayer'
 import DeviceToggle from './components/DeviceToggle'
-import { useBreakpoint } from './useBreakpoint'
+
+const isEmbedded = new URLSearchParams(window.location.search).get('embed') === '1'
 
 export default function App() {
+  const deviceOverride = useStore((s) => s.deviceOverride)
+
+  // Mobile preview: an inline iframe of the same app, same URL, same page —
+  // no navigation, no bezel/mockup chrome. This is the only way to get
+  // pixel-accurate mobile rendering while sitting in a desktop-wide browser
+  // window, since CSS breakpoints respond to the real viewport, not JS state.
+  if (!isEmbedded && deviceOverride === 'mobile') {
+    return (
+      <div className="h-full flex flex-col bg-black">
+        <DeviceToggle />
+        <div className="flex-1 grid place-items-center overflow-auto bg-[#0b0b0b] p-4">
+          <iframe
+            title="Mobile preview"
+            src={`${import.meta.env.BASE_URL}?embed=1`}
+            style={{ width: 390, height: '100%', maxHeight: 780, border: '1px solid rgba(255,255,255,0.15)', borderRadius: 12 }}
+          />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="h-full flex flex-col bg-black">
+      {!isEmbedded && <DeviceToggle />}
+      <MainApp />
+    </div>
+  )
+}
+
+function MainApp() {
   const { view, personaId, setPersona, setGenre } = useStore()
   const [genres, setGenres] = useState<Genre[]>([])
   const [moods, setMoods] = useState<Mood[]>([])
   const [error, setError] = useState<string | null>(null)
-  const isMd = useBreakpoint(768)
 
   useEffect(() => {
     // Personas still drive novelty/feedback server-side; we just default to the
@@ -54,17 +84,14 @@ export default function App() {
     return <div className="h-full grid place-items-center text-spotify-subtle bg-black">Loading…</div>
 
   return (
-    <div className="h-full flex flex-col bg-black">
-      <DeviceToggle />
+    <div className="flex-1 flex flex-col min-h-0">
       <TopBar />
 
       {/* Middle: 3-pane on desktop, single column on mobile */}
       <div className="flex-1 flex gap-2 px-2 min-h-0">
-        {isMd && (
-          <div className="w-[280px] shrink-0">
-            <LibraryPanel />
-          </div>
-        )}
+        <div className="hidden md:block w-[280px] shrink-0">
+          <LibraryPanel />
+        </div>
 
         <main className="flex-1 min-w-0 overflow-y-auto rounded-lg bg-gradient-to-b from-[#1f1f1f] to-spotify-base">
           {view === 'home' && <FilterTabs />}

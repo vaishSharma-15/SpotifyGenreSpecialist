@@ -2,23 +2,23 @@ import { useStore } from '../store'
 
 const OPTIONS = [
   { id: 'auto', label: 'Auto' },
-  { id: 'desktop', label: '🖥' },
-  { id: 'mobile', label: '📱' },
+  { id: 'desktop', label: '🖥 Desktop' },
+  { id: 'mobile', label: '📱 Mobile' },
 ] as const
 
-/** Always-visible mentor control: force Desktop/Mobile layout live, same page,
- * same state — never tucked inside a conditionally-hidden header. */
+/** Mentor control: preview the live app as Desktop or Mobile in place, on the
+ * same page. Sits in its own strip (not floated) so it never overlaps real
+ * app chrome like the profile menu or search bar. */
 export default function DeviceToggle() {
   const { deviceOverride, setDeviceOverride } = useStore()
   return (
-    <div className="fixed top-2 right-2 z-[60] flex items-center gap-0.5 p-0.5 rounded-full bg-black/85 backdrop-blur border border-white/10 text-[11px] shadow-lg">
+    <div className="flex items-center justify-center gap-1 py-1 bg-[#0b0b0b] border-b border-white/10 shrink-0">
       {OPTIONS.map((o) => (
         <button
           key={o.id}
           onClick={() => setDeviceOverride(o.id)}
-          title={`View as ${o.id}`}
-          className={`px-2 py-1 rounded-full font-semibold transition ${
-            deviceOverride === o.id ? 'bg-white text-black' : 'text-white/70 hover:text-white'
+          className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition ${
+            deviceOverride === o.id ? 'bg-white text-black' : 'text-spotify-subtle hover:text-white'
           }`}
         >
           {o.label}
