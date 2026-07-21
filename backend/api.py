@@ -142,6 +142,15 @@ def why_line(
     )}
 
 
+@app.get("/refresh-preview")
+def refresh_preview(track_id: str):
+    """Re-fetch a fresh preview_url for a track whose signed link expired."""
+    track = catalog.refresh_preview(track_id)
+    if track is None:
+        raise HTTPException(404, f"Unknown track: {track_id}")
+    return _track_json(track)
+
+
 @app.get("/adjacency")
 def adjacency(candidate_genre: str, user_genre: str):
     """LLM genre-adjacency judgment: is a deep cut in `candidate_genre` still

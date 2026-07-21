@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import time
 import urllib.parse
 import urllib.request
@@ -25,9 +26,10 @@ from typing import Dict, List, Optional, Tuple
 from .models import Track
 
 _BASE = "https://api.deezer.com"
-_TIMEOUT = 4.0
+_TIMEOUT = 8.0
 _CACHE_TTL = 300  # seconds
 _cache: Dict[str, Tuple[float, object]] = {}
+_log = logging.getLogger(__name__)
 
 
 class DeezerUnavailable(RuntimeError):
@@ -45,6 +47,7 @@ def _get(path: str) -> dict:
         with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:
             data = json.loads(resp.read().decode("utf-8"))
     except Exception as e:  # network/timeout/parse
+        _log.warning("Deezer request failed for %s: %r", url, e)
         raise DeezerUnavailable(str(e)) from e
     if isinstance(data, dict) and data.get("error"):
         raise DeezerUnavailable(str(data["error"]))
@@ -187,6 +190,18 @@ def tracks_for_genre(genre: str, limit: int = 100) -> List[Track]:
         # Fallback path: search by genre name for broader coverage.
         raw = _search_tracks(name, limit)
     return _tracks_from_raw(raw, name)
+
+
+def refresh_preview(deezer_id: str) -> str:
+    """Fetch a brand-new preview_url for a single Deezer track.
+
+    Deezer's preview links are short-lived signed CDN URLs (they carry their own
+    expiry token), so a track fetched a while ago can go stale even within the
+    same session. This hits Deezer's single-track endpoint directly to mint a
+    fresh one, bypassing the shared search/chart `_cache` entry.
+    """
+    data = _get(f"/track/{deezer_id}")
+    return data.get("preview", "") or ""
 
 
 def tracks_for_genre_mood(genre: str, mood_keywords: List[str], mood_name: str,

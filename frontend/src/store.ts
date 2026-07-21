@@ -46,6 +46,8 @@ interface AppState {
   setDuration: (d: number) => void
   seek: (t: number) => void
 
+  refreshPreview: (trackId: string) => Promise<string>
+
   addServed: (ids: string[]) => void
   resetServed: () => void
   addFeedback: (track: Track, action: ActionType) => void
@@ -135,6 +137,22 @@ export const useStore = create<AppState>((set, get) => ({
   setProgress: (p) => set({ progress: p }),
   setDuration: (d) => set({ duration: d }),
   seek: (t) => set({ seekTo: t }),
+
+  // Deezer's preview links are short-lived signed URLs; a track sitting in the
+  // queue/now-playing/liked state can go stale no matter how long the app has
+  // been open. Called on playback error, then patched everywhere it's held.
+  refreshPreview: async (trackId) => {
+    const fresh = await api.refreshPreview(trackId)
+    const patch = (t: Track) => (t.id === trackId ? { ...t, preview_url: fresh.preview_url } : t)
+    set((s) => ({
+      queue: s.queue.map(patch),
+      likedTracks: s.likedTracks.map(patch),
+      nowPlaying: s.nowPlaying && s.nowPlaying.id === trackId
+        ? { ...s.nowPlaying, preview_url: fresh.preview_url }
+        : s.nowPlaying,
+    }))
+    return fresh.preview_url
+  },
 
   addServed: (ids) => set((s) => ({ served: [...new Set([...s.served, ...ids])] })),
   resetServed: () => set({ served: [] }),

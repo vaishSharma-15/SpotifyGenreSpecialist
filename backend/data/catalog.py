@@ -6,6 +6,7 @@ app is never dead (resilience — mirrors the LLM fallback philosophy).
 """
 from __future__ import annotations
 
+import logging
 import os
 from typing import Dict, List, Optional
 
@@ -16,6 +17,7 @@ from .models import Track
 from .mock_library import TRACK_LIBRARY
 
 _SOURCE = os.getenv("DATA_SOURCE", "deezer").lower()
+_log = logging.getLogger(__name__)
 
 # A tight, curated genre list — every one is recognizable and returns real,
 # playable, in-genre songs from a Deezer editorial playlist. The value is the
@@ -75,27 +77,30 @@ def tracks_for_genre(genre: str, limit: int = 100) -> List[Track]:
     Always falls back to the mock library so the app is never dead.
     """
     if _SOURCE != "mock":
-        try:
-            query = _GENRE_QUERIES.get(genre)
-            sources = []
-            if query:
-                sources.append(lambda: dz.tracks_via_playlist(query, genre, limit=limit))
-                sources.append(lambda: dz.tracks_for_query(query, genre, limit=limit))
-            sources.append(lambda: dz.tracks_for_genre(genre, limit=limit))
+        query = _GENRE_QUERIES.get(genre)
+        sources = []
+        if query:
+            sources.append(lambda: dz.tracks_via_playlist(query, genre, limit=limit))
+            sources.append(lambda: dz.tracks_for_query(query, genre, limit=limit))
+        sources.append(lambda: dz.tracks_for_genre(genre, limit=limit))
 
-            best: List[Track] = []
-            best_playable = -1
-            for src in sources:
+        best: List[Track] = []
+        best_playable = -1
+        for src in sources:
+            # Each source is tried independently — one failing (or timing out)
+            # must not prevent the next source in the list from being tried.
+            try:
                 got = src()
-                pc = _playable_count(got)
-                if pc > best_playable:
-                    best, best_playable = got, pc
-                if pc >= 5:  # plenty playable — stop early, keep it in-genre
-                    break
-            if best:
-                return _remember(_prefer_playable(best))
-        except dz.DeezerUnavailable:
-            pass  # fall through to mock
+            except dz.DeezerUnavailable as e:
+                _log.warning("Deezer source failed for genre=%r: %s", genre, e)
+                continue
+            pc = _playable_count(got)
+            if pc > best_playable:
+                best, best_playable = got, pc
+            if pc >= 5:  # plenty playable — stop early, keep it in-genre
+                break
+        if best:
+            return _remember(_prefer_playable(best))
     target = genre.strip().casefold()
     return _remember([t for t in TRACK_LIBRARY
                      if any(g.strip().casefold() == target for g in t.genre_tags)])
@@ -142,6 +147,26 @@ def tracks_for_genre_mood(genre: str, mood: str, limit: int = 100) -> List[Track
 
 def get_track_by_id(track_id: str) -> Optional[Track]:
     return _seen.get(track_id)
+
+
+def refresh_preview(track_id: str) -> Optional[Track]:
+    """Re-mint a fresh preview_url for a track whose signed Deezer link expired.
+
+    Deezer's 30s preview links are only valid for a short window after being
+    issued, so any track sitting in a client queue/now-playing state can go
+    stale — regardless of how long the app has been open. The player calls
+    this on playback failure so a song plays no matter how old the session is.
+    """
+    track = _seen.get(track_id)
+    if track is None or not track_id.startswith("dz"):
+        return track
+    try:
+        fresh_url = dz.refresh_preview(track_id[2:])
+    except dz.DeezerUnavailable:
+        return track
+    if fresh_url:
+        track.preview_url = fresh_url
+    return track
 
 
 def any_track() -> Optional[Track]:

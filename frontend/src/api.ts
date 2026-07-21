@@ -72,4 +72,7 @@ export const api = {
     get<{ track: Track; note: string }>(
       `/baseline?persona_id=${encodeURIComponent(personaId)}&locked_genre=${encodeURIComponent(genre)}`,
     ),
+
+  refreshPreview: (trackId: string) =>
+    get<Track>(`/refresh-preview?track_id=${encodeURIComponent(trackId)}`),
 }

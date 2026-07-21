@@ -11,21 +11,43 @@ function fmt(sec: number) {
 export default function PlayerBar() {
   const {
     nowPlaying, isPlaying, togglePlay, setIsPlaying, next, prev, setShowMobilePlayer,
-    progress, duration, setProgress, setDuration, seekTo, seek,
+    progress, duration, setProgress, setDuration, seekTo, seek, refreshPreview,
   } = useStore()
   const audioRef = useRef<HTMLAudioElement>(null)
   const [volume, setVolume] = useState(0.8)
   const [noPreview, setNoPreview] = useState(false)
+  const retriedRef = useRef<string | null>(null)
 
   // Load a new source when the track changes.
   useEffect(() => {
     const a = audioRef.current
     if (!a || !nowPlaying) return
+    retriedRef.current = null
     setNoPreview(!nowPlaying.preview_url)
     a.src = nowPlaying.preview_url || ''
     if (nowPlaying.preview_url && isPlaying) a.play().catch(() => {})
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nowPlaying?.id])
+
+  // Deezer's preview links expire; a stale one fails to load/play regardless of
+  // how long the track has been sitting in the queue. Refetch once and retry.
+  const onAudioError = async () => {
+    const id = nowPlaying?.id
+    if (!id || retriedRef.current === id) {
+      setNoPreview(true)
+      return
+    }
+    retriedRef.current = id
+    try {
+      const freshUrl = await refreshPreview(id)
+      const a = audioRef.current
+      if (!a || !freshUrl || useStore.getState().nowPlaying?.id !== id) return
+      a.src = freshUrl
+      if (useStore.getState().isPlaying) a.play().catch(() => {})
+    } catch {
+      setNoPreview(true)
+    }
+  }
 
   // Reflect play/pause state onto the element.
   useEffect(() => {
@@ -66,6 +88,7 @@ export default function PlayerBar() {
           setIsPlaying(false)
           next()
         }}
+        onError={onAudioError}
       />
 
       {/* Left: track */}
