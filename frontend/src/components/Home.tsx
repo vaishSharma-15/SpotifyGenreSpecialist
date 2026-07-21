@@ -8,11 +8,6 @@ interface Props {
   genres: Genre[]
 }
 
-const greeting = () => {
-  const h = new Date().getHours()
-  return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening'
-}
-
 /** Personalized Home: your Liked Songs + AI picks tuned to your taste. No controls. */
 export default function Home({ genres }: Props) {
   const { likedTracks, savedMixes, personaId, dial, setQueue, applyMix } = useStore()
@@ -40,7 +35,7 @@ export default function Home({ genres }: Props) {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-3xl font-extrabold text-white">{greeting()}</h1>
+        <h1 className="text-3xl font-extrabold text-white">Hello there</h1>
         <p className="text-spotify-subtle mt-1">
           {likedTracks.length
             ? <>Based on your <span className="text-white font-semibold">{likedTracks.length}</span> liked {likedTracks.length === 1 ? 'song' : 'songs'} — more you’ll love.</>

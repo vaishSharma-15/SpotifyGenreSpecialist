@@ -48,11 +48,9 @@ export default function HomeShelf() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [personaId, genre, mood, dial])
 
-  const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 18 ? 'Good afternoon' : 'Good evening'
-
   return (
     <div>
-      <h1 className="text-3xl font-extrabold text-white mb-1">{greeting}</h1>
+      <h1 className="text-3xl font-extrabold text-white mb-1">Hello there</h1>
       <p className="text-spotify-subtle mb-6">
         Deep cuts in <span className="text-white font-semibold">{genre}</span>
         {mood && <> · <span className="text-spotify-green font-semibold">{mood}</span> mood</>} — picked for your taste.
