@@ -28,7 +28,9 @@ export default function HomeShelf() {
       setExhausted(done)
       addServed(recs.map((t) => t.id))
       setTracks((prev) => {
-        const merged = append ? [...prev, ...recs] : recs
+        if (!append) { setQueue(recs); return recs }
+        const seen = new Set(prev.map((t) => t.id))
+        const merged = [...prev, ...recs.filter((t) => !seen.has(t.id))]
         setQueue(merged) // keep the player queue in sync for next/prev
         return merged
       })
