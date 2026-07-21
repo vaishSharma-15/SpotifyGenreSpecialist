@@ -133,9 +133,19 @@ def get_recommendations(
     if limit <= 0:  # edge case 3.4
         return []
 
-    pool = apply_genre_lock(candidate_tracks, locked_genre)
-    pool = apply_popularity_ceiling(pool, dial_position)
-    pool = apply_novelty_filter(pool, excluded_ids)
+    genre_pool = apply_genre_lock(candidate_tracks, locked_genre)
+
+    # Progressively relax filters instead of ever going empty: a small/expired
+    # candidate pool (dial floor + already-served exclusions) shouldn't make
+    # discovery "run out". Only a genre with zero tracks at all comes back empty.
+    pool = apply_novelty_filter(apply_popularity_ceiling(genre_pool, dial_position), excluded_ids)
+    if not pool:
+        pool = apply_popularity_ceiling(genre_pool, dial_position)  # recycle served tracks
+    if not pool:
+        pool = apply_novelty_filter(genre_pool, excluded_ids)  # drop the popularity floor
+    if not pool:
+        pool = genre_pool  # last resort: everything in-genre, served or not
+
     if mood and mood_mod.is_mood(mood):
         ranked = rank_by_mood(pool, mood)
     else:

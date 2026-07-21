@@ -18,34 +18,63 @@ export default function PlayerBar() {
   const [noPreview, setNoPreview] = useState(false)
   const retriedRef = useRef<string | null>(null)
 
-  // Load a new source when the track changes.
+  // Load a new source when the track changes. If the track arrived with no
+  // preview_url at all (not just a stale one), try to mint one before giving up.
   useEffect(() => {
     const a = audioRef.current
     if (!a || !nowPlaying) return
+    const id = nowPlaying.id
     retriedRef.current = null
-    setNoPreview(!nowPlaying.preview_url)
-    a.src = nowPlaying.preview_url || ''
-    if (nowPlaying.preview_url && isPlaying) a.play().catch(() => {})
+    if (nowPlaying.preview_url) {
+      setNoPreview(false)
+      a.src = nowPlaying.preview_url
+      if (isPlaying) a.play().catch(() => {})
+      return
+    }
+    setNoPreview(true)
+    a.src = ''
+    retriedRef.current = id
+    refreshPreview(id)
+      .then((url) => {
+        if (!url || useStore.getState().nowPlaying?.id !== id) {
+          if (useStore.getState().isPlaying) next()
+          return
+        }
+        const cur = audioRef.current
+        if (!cur) return
+        setNoPreview(false)
+        cur.src = url
+        if (useStore.getState().isPlaying) cur.play().catch(() => {})
+      })
+      .catch(() => { if (useStore.getState().isPlaying) next() })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nowPlaying?.id])
 
   // Deezer's preview links expire; a stale one fails to load/play regardless of
-  // how long the track has been sitting in the queue. Refetch once and retry.
+  // how long the track has been sitting in the queue. Refetch once and retry;
+  // if that fails too, skip forward instead of stalling on a dead track.
   const onAudioError = async () => {
     const id = nowPlaying?.id
     if (!id || retriedRef.current === id) {
       setNoPreview(true)
+      if (isPlaying) next()
       return
     }
     retriedRef.current = id
     try {
       const freshUrl = await refreshPreview(id)
       const a = audioRef.current
-      if (!a || !freshUrl || useStore.getState().nowPlaying?.id !== id) return
+      if (!a || !freshUrl || useStore.getState().nowPlaying?.id !== id) {
+        setNoPreview(true)
+        if (useStore.getState().isPlaying) next()
+        return
+      }
+      setNoPreview(false)
       a.src = freshUrl
       if (useStore.getState().isPlaying) a.play().catch(() => {})
     } catch {
       setNoPreview(true)
+      if (useStore.getState().isPlaying) next()
     }
   }
 

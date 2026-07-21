@@ -151,7 +151,7 @@ export const useStore = create<AppState>((set, get) => ({
         ? { ...s.nowPlaying, preview_url: fresh.preview_url }
         : s.nowPlaying,
     }))
-    return fresh.preview_url
+    return fresh.preview_url || ''
   },
 
   addServed: (ids) => set((s) => ({ served: [...new Set([...s.served, ...ids])] })),
